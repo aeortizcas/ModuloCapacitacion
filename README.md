@@ -1,67 +1,52 @@
 # Modulo de Capacitacion
 
-Aplicacion web lista para probar localmente y subir a GitHub. No usa npm ni dependencias externas: solo HTML, CSS, JavaScript, Node.js y SQLite.
+Sitio estatico listo para GitHub Pages. Funciona solo con HTML, CSS y JavaScript.
 
-## Requisitos
+## Abrir localmente
 
-- Node.js 24 o superior
-
-## Ejecutar facil
-
-En Windows, haz doble clic en:
+Abre el archivo:
 
 ```text
-start.bat
+index.html
 ```
 
-O ejecuta desde terminal:
-
-```bash
-node app.mjs
-```
-
-Luego abre:
-
-```text
-http://localhost:3000
-```
+Tambien puedes publicarlo directamente en GitHub Pages.
 
 ## Que incluye
 
-- Videos por YouTube o archivo local.
-- Carga de MP4, WebM, MOV o M4V.
-- Progreso por modulo.
-- Notas del participante.
+- Catalogo de 4 modulos de capacitacion.
+- Videos por enlace de YouTube.
+- Vista de aprendizaje, progreso, recursos y videos.
+- Notas por modulo.
 - Puntaje de evaluacion.
-- Base de datos SQLite creada automaticamente.
+- Avance guardado en el navegador con `localStorage`.
+- Prueba temporal de archivo de video local durante la presentacion.
 
-## Estructura
+## Videos
 
-- `app.mjs`: servidor, API y SQLite.
-- `start.bat`: arranque facil en Windows.
-- `public/index.html`: interfaz principal.
-- `public/styles.css`: diseno visual responsive.
-- `public/app.js`: logica del modulo.
-- `data/capacitacion.db`: se crea automaticamente al iniciar.
-- `uploads/`: videos cargados localmente; no se suben a GitHub.
+En la pestana `Videos` puedes pegar enlaces de YouTube como:
 
-## Cargar videos o usar YouTube
-
-1. Abre `http://localhost:3000`.
-2. Selecciona un modulo.
-3. Entra a la pestana `Videos`.
-4. Sube un archivo MP4/WebM/MOV/M4V o pega un enlace de YouTube.
-
-La app acepta enlaces `youtube.com/watch`, `youtu.be`, `shorts` y `embed`.
-
-## Subir a GitHub
-
-```bash
-git add .
-git commit -m "Crear modulo de capacitacion"
-git branch -M main
-git remote add origin https://github.com/USUARIO/REPOSITORIO.git
-git push -u origin main
+```text
+https://www.youtube.com/watch?v=VIDEO_ID
+https://youtu.be/VIDEO_ID
+https://www.youtube.com/shorts/VIDEO_ID
 ```
 
-Nota: GitHub Pages solo publica sitios estaticos. Como este proyecto usa SQLite y subida de videos, debe ejecutarse en una computadora, servidor, Codespaces, Render, Railway o similar.
+La pagina convierte el enlace al formato embebido y lo guarda en ese navegador.
+
+## GitHub Pages
+
+1. Sube este repositorio a GitHub.
+2. Entra a `Settings`.
+3. Entra a `Pages`.
+4. En `Source`, selecciona `Deploy from a branch`.
+5. Selecciona rama `main` y carpeta `/root`.
+6. Guarda.
+
+GitHub mostrara un enlace parecido a:
+
+```text
+https://TU-USUARIO.github.io/ModuloCapacitacion/
+```
+
+Nota: GitHub Pages no guarda archivos subidos ni usa base de datos. Por eso esta version usa YouTube y guarda el progreso localmente en cada navegador.
