@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Modulo de Capacitacion</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegacion del modulo">
+        <div class="brand">
+          <span class="brand-mark">MC</span>
+          <div>
+            <strong>ModuloCap</strong>
+            <span>Campus interno</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="learning">
+            <span>Aprendizaje</span>
+          </button>
+          <button class="nav-item" data-view="progress">
+            <span>Progreso</span>
+          </button>
+          <button class="nav-item" data-view="resources">
+            <span>Recursos</span>
+          </button>
+          <button class="nav-item" data-view="admin">
+            <span>Videos</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-card">
+          <span class="label">Ruta sugerida</span>
+          <strong>4 modulos</strong>
+          <p>Sube videos, completa cada modulo, guarda notas y registra tu evaluacion final.</p>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <span class="eyebrow">Capacitacion 2026</span>
+            <h1>Entrenamiento operativo con seguimiento real</h1>
+          </div>
+          <div class="user-pill">
+            <span class="status-dot"></span>
+            Usuario demo
+          </div>
+        </header>
+
+        <section class="hero">
+          <div class="hero-copy">
+            <span class="eyebrow">Plan semanal</span>
+            <h2>Aprende, practica y deja evidencia de avance en un solo lugar.</h2>
+            <p>Este modulo combina videos cargados por el equipo, lecciones guiadas, notas personales y evaluaciones guardadas en SQLite.</p>
+          </div>
+          <div class="hero-panel">
+            <span class="panel-number" id="heroPercent">0%</span>
+            <span class="panel-label">avance total</span>
+            <div class="meter">
+              <span id="heroMeter"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats-grid" aria-label="Resumen de avance">
+          <article class="stat">
+            <span>Modulos</span>
+            <strong id="statModules">0</strong>
+          </article>
+          <article class="stat">
+            <span>Completados</span>
+            <strong id="statCompleted">0</strong>
+          </article>
+          <article class="stat">
+            <span>Horas</span>
+            <strong id="statHours">0</strong>
+          </article>
+          <article class="stat">
+            <span>Promedio</span>
+            <strong id="statScore">0</strong>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="module-list" id="moduleList" aria-label="Lista de modulos"></div>
+
+          <article class="detail-panel" id="detailPanel">
+            <div class="empty-state">
+              <strong>Cargando capacitacion...</strong>
+              <span>Preparando contenido y progreso guardado.</span>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <template id="moduleCardTemplate">
+      <button class="module-card">
+        <span class="module-chip"></span>
+        <strong></strong>
+        <small></small>
+        <span class="module-progress"></span>
+      </button>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
