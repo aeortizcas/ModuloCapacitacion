@@ -86,7 +86,10 @@
         </section>
 
         <section class="workspace">
-          <div class="module-list" id="moduleList" aria-label="Lista de modulos"></div>
+          <div class="catalog-panel">
+            <div class="section-tabs" id="sectionTabs" aria-label="Secciones de capacitacion"></div>
+            <div class="module-list" id="moduleList" aria-label="Lista de modulos"></div>
+          </div>
 
           <article class="detail-panel" id="detailPanel">
             <div class="empty-state">
@@ -104,6 +107,13 @@
         <strong></strong>
         <small></small>
         <span class="module-progress"></span>
+      </button>
+    </template>
+
+    <template id="sectionTabTemplate">
+      <button class="section-tab">
+        <strong></strong>
+        <span></span>
       </button>
     </template>
 

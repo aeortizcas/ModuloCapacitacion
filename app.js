@@ -3,6 +3,7 @@ const STORAGE_KEY = "modulo-capacitacion-static-v1";
 const modules = [
   {
     id: 1,
+    section: "Inicio",
     title: "Induccion y cultura de servicio",
     description: "Conoce el proposito del equipo, estandares de atencion y rituales para dar seguimiento con claridad.",
     category: "Onboarding",
@@ -18,6 +19,7 @@ const modules = [
   },
   {
     id: 2,
+    section: "Habilidades",
     title: "Comunicacion efectiva",
     description: "Practica mensajes breves, escucha activa y escalamiento oportuno para equipos operativos.",
     category: "Habilidades",
@@ -33,6 +35,7 @@ const modules = [
   },
   {
     id: 3,
+    section: "Cumplimiento",
     title: "Seguridad de informacion",
     description: "Aprende buenas practicas para proteger datos, accesos, equipos y documentos internos.",
     category: "Cumplimiento",
@@ -48,6 +51,7 @@ const modules = [
   },
   {
     id: 4,
+    section: "Operacion",
     title: "Excelencia operativa",
     description: "Convierte procesos repetibles en resultados medibles con indicadores, controles y retrospectivas.",
     category: "Operacion",
@@ -65,6 +69,7 @@ const modules = [
 
 const state = {
   selectedId: 1,
+  activeSection: "Todas",
   activeView: "learning",
   localVideoUrl: null,
   saved: loadSaved()
@@ -72,8 +77,10 @@ const state = {
 
 const els = {
   moduleList: document.querySelector("#moduleList"),
+  sectionTabs: document.querySelector("#sectionTabs"),
   detailPanel: document.querySelector("#detailPanel"),
   template: document.querySelector("#moduleCardTemplate"),
+  sectionTemplate: document.querySelector("#sectionTabTemplate"),
   heroPercent: document.querySelector("#heroPercent"),
   heroMeter: document.querySelector("#heroMeter"),
   statModules: document.querySelector("#statModules"),
@@ -130,6 +137,7 @@ function dashboardStats() {
 
 function render() {
   renderStats();
+  renderSections();
   renderModules();
   renderDetail();
 }
@@ -147,7 +155,9 @@ function renderStats() {
 function renderModules() {
   els.moduleList.replaceChildren();
 
-  for (const module of modules) {
+  const visibleModules = modules.filter((module) => state.activeSection === "Todas" || module.section === state.activeSection);
+
+  for (const module of visibleModules) {
     const saved = moduleState(module.id);
     const fragment = els.template.content.cloneNode(true);
     const card = fragment.querySelector(".module-card");
@@ -170,6 +180,35 @@ function renderModules() {
     });
 
     els.moduleList.appendChild(fragment);
+  }
+}
+
+function renderSections() {
+  const sections = ["Todas", ...new Set(modules.map((module) => module.section))];
+  els.sectionTabs.replaceChildren();
+
+  for (const section of sections) {
+    const fragment = els.sectionTemplate.content.cloneNode(true);
+    const button = fragment.querySelector(".section-tab");
+    const title = fragment.querySelector("strong");
+    const count = fragment.querySelector("span");
+    const amount = section === "Todas" ? modules.length : modules.filter((module) => module.section === section).length;
+
+    button.classList.toggle("active", section === state.activeSection);
+    title.textContent = section;
+    count.textContent = `${amount} modulo${amount === 1 ? "" : "s"}`;
+
+    button.addEventListener("click", () => {
+      state.activeSection = section;
+      const stillVisible = modules.some((module) => module.id === state.selectedId && (section === "Todas" || module.section === section));
+      if (!stillVisible) {
+        state.selectedId = modules.find((module) => section === "Todas" || module.section === section)?.id;
+      }
+      clearLocalVideo();
+      render();
+    });
+
+    els.sectionTabs.appendChild(fragment);
   }
 }
 
@@ -196,6 +235,7 @@ function renderLearningView(module) {
     <div class="detail-header">
       <div class="detail-meta">
         <span class="pill">${module.category}</span>
+        <span class="pill">${module.section}</span>
         <span class="pill">${module.duration_minutes} minutos</span>
         <span class="pill">${module.level}</span>
         <span class="pill">${state.localVideoUrl ? "Archivo local" : "YouTube"}</span>
