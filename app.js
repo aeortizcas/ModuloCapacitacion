@@ -10,7 +10,7 @@ const modules = [
     duration_minutes: 28,
     level: "Inicial",
     video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    accent: "#2563eb",
+    accent: "#e40046",
     lessons: [
       { title: "Bienvenida al programa", minutes: 6, summary: "Objetivos, reglas del recorrido y expectativas de participacion." },
       { title: "Momentos de verdad", minutes: 10, summary: "Como reconocer situaciones criticas en la experiencia del cliente." },
@@ -26,7 +26,7 @@ const modules = [
     duration_minutes: 34,
     level: "Intermedio",
     video_url: "https://www.youtube.com/embed/jNQXAC9IVRw",
-    accent: "#059669",
+    accent: "#2f66d0",
     lessons: [
       { title: "Escucha activa", minutes: 9, summary: "Tecnicas para confirmar entendimiento sin frenar la conversacion." },
       { title: "Mensajes claros", minutes: 11, summary: "Estructura de contexto, accion requerida y fecha limite." },
@@ -42,7 +42,7 @@ const modules = [
     duration_minutes: 31,
     level: "Obligatorio",
     video_url: "https://www.youtube.com/embed/3JZ_D3ELwOQ",
-    accent: "#dc2626",
+    accent: "#111111",
     lessons: [
       { title: "Datos sensibles", minutes: 8, summary: "Identificar informacion que requiere resguardo especial." },
       { title: "Accesos y contrasenas", minutes: 10, summary: "Practicas minimas para cuentas y dispositivos." },
@@ -58,7 +58,7 @@ const modules = [
     duration_minutes: 42,
     level: "Avanzado",
     video_url: "https://www.youtube.com/embed/tgbNymZ7vqY",
-    accent: "#7c3aed",
+    accent: "#f5c400",
     lessons: [
       { title: "Indicadores utiles", minutes: 12, summary: "Distinguir indicadores de actividad, calidad y resultado." },
       { title: "Control diario", minutes: 15, summary: "Rutina breve para detectar desviaciones temprano." },
