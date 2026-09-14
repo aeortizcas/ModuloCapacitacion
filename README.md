@@ -1,52 +1,66 @@
-# Modulo de Capacitacion
+﻿# Innovatek Campus
 
-Sitio estatico listo para GitHub Pages. Funciona solo con HTML, CSS y JavaScript.
+Plataforma de capacitación para call center con interfaz en español, cuentas de capacitadores y participantes, cursos compartidos, videos de YouTube y evaluaciones calificadas en el servidor.
 
-## Abrir localmente
+## Ejecutar
 
-Abre el archivo:
+Requiere Node.js 24 o superior. No necesita instalar dependencias.
 
-```text
-index.html
+```powershell
+node server.mjs
 ```
 
-Tambien puedes publicarlo directamente en GitHub Pages.
+Abre http://127.0.0.1:3000. También puedes ejecutar `iniciar.cmd` en Windows.
 
-## Que incluye
+En el primer acceso crea tu cuenta de capacitador. No hay contraseñas predeterminadas. Los siguientes registros son participantes; un capacitador puede cambiar sus roles en **Equipo y resultados**. Todos los capacitadores pueden gestionar roles; cada uno solo puede modificar sus propios cursos y consultar los resultados de sus cursos.
 
-- Catalogo de 4 modulos de capacitacion.
-- Videos por enlace de YouTube.
-- Vista de aprendizaje, progreso, recursos y videos.
-- Notas por modulo.
-- Puntaje de evaluacion.
-- Avance guardado en el navegador con `localStorage`.
-- Prueba temporal de archivo de video local durante la presentacion.
+## Recorrido
 
-## Videos
+1. En **Mis contenidos**, crea una capacitación, escribe el material o importa un archivo `.txt` y pega el enlace de YouTube. El video se aloja en YouTube, no en este servidor.
+2. Agrega preguntas de selección única, marca la opción correcta y establece la nota mínima. Puedes guardar borradores o publicar para todo el equipo.
+3. Los participantes estudian, guardan notas privadas y marcan el contenido como completado.
+4. Resuelven la prueba y reciben su calificación automática. Pueden reintentar; se conserva el historial.
+5. El capacitador consulta los resultados en **Equipo y resultados**. Si cambia la prueba o su nota mínima, los intentos anteriores conservan su versión y se necesita aprobar la nueva evaluación.
 
-En la pestana `Videos` puedes pegar enlaces de YouTube como:
+Se incluyen tres capacitaciones iniciales editables. No se agregan videos ficticios: el capacitador debe vincular los videos reales. El 60% del avance corresponde al contenido marcado como completado y el 100% requiere una evaluación aprobada; no se mide el tiempo real de reproducción del video.
 
-```text
-https://www.youtube.com/watch?v=VIDEO_ID
-https://youtu.be/VIDEO_ID
-https://www.youtube.com/shorts/VIDEO_ID
+## Datos y acceso
+
+- SQLite persiste cuentas, cursos, notas, avances y resultados en `data/training.db`.
+- Contraseñas derivadas con scrypt y sal aleatoria; sesiones de 24 horas en cookies HttpOnly y SameSite.
+- Roles, propiedad de los cursos y calificaciones se validan en el servidor. Las respuestas correctas no se incluyen en las consultas de los participantes.
+- Registro de participantes abierto a quienes puedan acceder al servidor. Configura el primer capacitador localmente antes de exponer el servicio.
+- No se implementa recuperación de contraseña por correo ni verificación de correo.
+- Los datos de la versión estática anterior permanecen en el navegador; no se migran a las nuevas cuentas automáticamente.
+
+## Uso compartido y publicación
+
+Esta versión reemplaza la aplicación estática: **GitHub Pages no ejecuta este servidor ni comparte su base de datos**. Se necesita un alojamiento que ejecute Node.js 24 y proporcione almacenamiento persistente para SQLite. No se ha desplegado una versión en Internet. El runtime de Sites/Cloudflare Workers requiere adaptar este servidor Node y su SQLite local a sus servicios antes de publicar allí.
+
+Variables opcionales del proceso:
+
+- `PORT`: puerto, por defecto `3000`.
+- `HOST`: interfaz de escucha, por defecto `127.0.0.1`; para una red interna se puede configurar `0.0.0.0` y permitir el acceso en el firewall.
+- `DB_PATH`: ruta del archivo de base de datos.
+- `APP_ORIGIN`: origen HTTPS exacto del alojamiento (por ejemplo, `https://campus.empresa.com`). Activa cookies Secure y permite ese origen detrás de un proxy HTTPS.
+
+Usa HTTPS para el acceso remoto. Mantén la base de datos en un volumen persistente y realiza copias de seguridad con el servicio detenido, incluyendo los archivos WAL/SHM si existen. No publiques la carpeta `data` como contenido estático. El servidor solo entrega los tres archivos públicos autorizados.
+
+## Verificación
+
+```powershell
+node --check server.mjs
+node --check app.js
+node --test tests/training.test.mjs
 ```
 
-La pagina convierte el enlace al formato embebido y lo guarda en ese navegador.
+La prueba de integración usa una base temporal y cubre configuración inicial, autenticación, roles, borradores, publicación, validación de YouTube, aislamiento de notas, corrección real de respuestas, historial, versiones de pruebas y cierre de sesión. La validación visual en navegador queda pendiente porque no había un navegador conectado disponible.
 
-## GitHub Pages
+## Experiencias por rol
 
-1. Sube este repositorio a GitHub.
-2. Entra a `Settings`.
-3. Entra a `Pages`.
-4. En `Source`, selecciona `Deploy from a branch`.
-5. Selecciona rama `main` y carpeta `/root`.
-6. Guarda.
+- **Capacitador:** ingresa a su panel de gestión, crea y edita sus capacitaciones, revisa borradores y consulta las pruebas con su clave de respuestas en vista previa. Puede dar seguimiento a los participantes que no han estudiado, tienen una prueba pendiente, necesitan repasar o ya aprobaron. Los indicadores se calculan sobre sus cursos publicados y las versiones vigentes de las pruebas; cada aprobación corresponde a una combinación participante/capacitación. Todas las capacitaciones publicadas están disponibles para todos los participantes.
+- **Participante:** ingresa a su inicio personal, ve su siguiente capacitación y los pendientes de su ruta, estudia y consulta sus propios resultados. No tiene acceso al panel, al editor ni a las respuestas correctas.
+- El selector de acceso en el inicio de sesión verifica el rol existente; no otorga permisos. El registro sigue creando únicamente participantes. Los capacitadores habilitados pueden cambiar roles desde Equipo y resultados.
+- La vista previa del capacitador no guarda notas, avances ni intentos. El servidor rechaza esas operaciones si la cuenta no es de participante.
 
-GitHub mostrara un enlace parecido a:
-
-```text
-https://TU-USUARIO.github.io/ModuloCapacitacion/
-```
-
-Nota: GitHub Pages no guarda archivos subidos ni usa base de datos. Por eso esta version usa YouTube y guarda el progreso localmente en cada navegador.
+Las pruebas de integración también cubren el acceso por rol, los estados del seguimiento, la exclusión de notas privadas del panel y el aislamiento de datos entre capacitadores.

@@ -1,476 +1,78 @@
-const STORAGE_KEY = "modulo-capacitacion-static-v1";
+﻿const $=s=>document.querySelector(s);
+const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icons={grid:'▦',book:'▤',check:'✓',team:'♧',plus:'+',arrow:'↗',play:'▶',out:'↪'};
+const state={user:null,courses:[],view:'home',portal:'learner',category:'Todas',query:'',selected:null,tab:'content',authMode:'login',team:null};
+let toastTimer;
+function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4500);}
+async function api(path,method='GET',data){const res=await fetch('/api'+path,{method,headers:method==='GET'?{}:{'Content-Type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});const value=await res.json();if(!res.ok){if(res.status===401&&state.user){state.user=null;renderAuth();}throw Error(value.error||'No se pudo completar la solicitud.');}return value;}
+function button(text,action,cls='primary',extra=''){return `<button class="${cls}" data-action="${action}" ${extra}>${text}</button>`;}
+function brand(){return '<div class="brand"><span class="brand-mark">in<span>•</span></span><div>INNOVATEK<small>CAMPUS DE FORMACIÓN</small></div></div>';}
+function currentAttempt(c){return c.attempts.find(a=>a.revision===c.revision);}
+function passed(c){return c.attempts.some(a=>a.revision===c.revision&&a.passed);}
+function progress(c){return passed(c)?100:c.progress.completed?60:0;}
+function heading(kicker,title,description,action=''){return `<div class="page-heading"><div><span class="eyebrow">${kicker}</span><h1>${title}</h1><p>${description}</p></div>${action}</div>`;}
+function renderView(){if(state.view==='home')return state.user.role==='trainer'?renderTrainerDashboard():renderLearnerHome();if(state.view==='detail')return renderDetail();if(state.view==='editor')return renderEditor();if(state.view==='team')return renderTeam();if(state.view==='progress')return renderProgress();renderCatalog();}
+function renderCatalog(){const manage=state.view==='manage',courses=state.courses.filter(c=>manage?c.owner===state.user.id:c.published);const completed=state.courses.filter(c=>c.published&&passed(c)).length;const published=state.courses.filter(c=>c.published);const pct=published.length?Math.round(completed/published.length*100):0;$('#workspace').innerHTML=heading(manage?'CREA EXPERIENCIAS DE APRENDIZAJE':'TU DESARROLLO, EN MARCHA',manage?'Mis contenidos':`Hola, ${escape(state.user.name.split(' ')[0])} <span class="hello">✦</span>`,manage?'Organiza tus capacitaciones, prepara pruebas y publica cuando estén listas.':'Cada habilidad que desarrollas se nota en tu próxima llamada.',state.user.role==='trainer'?button('+ Nueva capacitación','new'): '')+(!manage?`<section class="overview"><div class="overview-main"><span class="badge light">TU RUTA DE APRENDIZAJE</span><h2>Más confianza.<br>Mejores conversaciones.</h2><p>Encuentra tu próxima capacitación y sigue creciendo con tu equipo.</p><div class="overview-bottom"><span>${completed} de ${published.length} capacitaciones aprobadas</span><strong>${pct}%</strong></div><progress value="${pct}" max="100" aria-label="Capacitaciones aprobadas"></progress></div><div class="overview-stats"><div><span class="stat-icon purple">▤</span><strong>${published.length}</strong><span>Disponibles para ti</span></div><div><span class="stat-icon green">✓</span><strong>${completed}</strong><span>Capacitaciones aprobadas</span></div><div><span class="stat-icon orange">◷</span><strong>${published.reduce((n,c)=>n+c.minutes,0)}<small> min</small></strong><span>De aprendizaje disponible</span></div></div></section>`:'')+`<section class="catalog"><div class="section-heading"><h2>${manage?'Biblioteca del capacitador':'Explora tus capacitaciones'} <span>${courses.length}</span></h2><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Buscar capacitación…" aria-label="Buscar capacitación" value="${escape(state.query)}"></label></div><div class="filters" role="group" aria-label="Filtrar por categoría">${['Todas',...new Set(courses.map(c=>c.category))].map(x=>`<button class="filter ${state.category===x?'selected':''}" data-action="filter" data-category="${escape(x)}">${escape(x)}</button>`).join('')}</div><div class="course-grid" id="course-grid"></div></section>`;renderCards(courses);$('#search').oninput=e=>{state.query=e.target.value;renderCards(courses);};}
+function renderCards(courses){const filtered=courses.filter(c=>(state.category==='Todas'||state.category===c.category)&&`${c.title} ${c.description}`.toLocaleLowerCase().includes(state.query.toLocaleLowerCase()));$('#course-grid').innerHTML=filtered.length?filtered.map((c,i)=>`<article class="course-card"><div class="course-art tone-${i%4}"><span class="badge">${escape(c.category)}</span><span class="art-shape" aria-hidden="true">${['◉','≋','◇','▥'][i%4]}</span><span class="art-caption">${['CONECTA CON CONFIANZA','ESCUCHA. ENTIENDE. CONECTA.','LA CALIDAD EMPIEZA CONTIGO','CRECE EN CADA LLAMADA'][i%4]}</span><span class="duration">◷ ${c.minutes} min</span></div><div class="card-body"><div class="card-meta"><span>${c.questions.length} pregunta${c.questions.length===1?'':'s'}</span><span class="${passed(c)?'success-text':''}">${!c.published?'Borrador':passed(c)?'✓ Aprobada':c.progress.completed?'En progreso':'Disponible'}</span></div><h3>${escape(c.title)}</h3><p>${escape(c.description)}</p><div class="trainer-line"><span class="mini-avatar">${escape(c.trainer.slice(0,1))}</span>${escape(c.trainer)}</div><progress value="${progress(c)}" max="100" aria-label="Avance de ${escape(c.title)}"></progress><div class="card-actions">${button(state.view==='manage'?'Editar capacitación':passed(c)?'Repasar capacitación':c.progress.completed?'Continuar':'Comenzar',state.view==='manage'?'edit':'open','card-button',`data-id="${c.id}"`)}<span aria-hidden="true">→</span></div></div></article>`).join(''):`<div class="empty"><span>▤</span><h3>No hay capacitaciones ${state.query?'con esa búsqueda':'aquí todavía'}</h3><p>${state.view==='manage'?'Crea una capacitación para compartir tu conocimiento.':'Las capacitaciones aparecerán cuando tu capacitador las publique.'}</p></div>`;}
+function renderLearnerDetail(){const c=state.courses.find(c=>c.id===state.selected);if(!c){state.view='catalog';return shell();}const last=currentAttempt(c);$('#workspace').innerHTML=`${button('← Volver a capacitaciones','back','link back')}<div class="lesson-heading"><span class="eyebrow">${escape(c.category)} · ${c.minutes} MIN</span><h1>${escape(c.title)}</h1><p>${escape(c.description)}</p></div><div class="learning-layout"><section class="lesson-panel"><div class="tabs">${[['content','01 · Contenido'],['quiz','02 · Evaluación'],['notes','Mis notas']].map(([id,text])=>`<button class="${state.tab===id?'active':''}" data-action="tab" data-tab="${id}">${text}</button>`).join('')}</div><div id="lesson-body"></div></section><aside class="lesson-aside"><span class="eyebrow">TU AVANCE</span><h2>${progress(c)}<small>%</small></h2><progress value="${progress(c)}" max="100" aria-label="Tu avance"></progress><div class="step"><span class="${c.progress.completed?'done':''}">${c.progress.completed?'✓':'1'}</span><div><strong>Estudia el contenido</strong><small>Video y material de apoyo</small></div></div><div class="step"><span class="${passed(c)?'done':''}">${passed(c)?'✓':'2'}</span><div><strong>Resuelve la evaluación</strong><small>Nota mínima: ${c.pass}%</small></div></div><hr><div class="trainer-line"><span class="avatar">${escape(c.trainer.slice(0,1))}</span><div><small>Tu capacitador</small><strong>${escape(c.trainer)}</strong></div></div>${last?`<div class="result-summary"><small>Último intento</small><strong>${last.score}% · ${last.passed?'Aprobado':'Por mejorar'}</strong></div>`:''}</aside></div>`;
+if(state.tab==='content')$('#lesson-body').innerHTML=`${c.video?`<div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${escape(c.video)}" title="Video: ${escape(c.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div><a class="video-link" href="https://www.youtube.com/watch?v=${escape(c.video)}" target="_blank" rel="noopener noreferrer">Abrir en YouTube ↗</a>`:'<div class="content-banner"><span>▤</span><div><strong>Material de aprendizaje</strong><p>Lee el contenido y prepara tu siguiente conversación.</p></div></div>'}<div class="lesson-copy"><h2>Lo que necesitas saber</h2><div class="prose">${escape(c.content)}</div></div><div class="lesson-bottom">${button(c.progress.completed?'✓ Contenido completado':'Marcar contenido como completado','complete',c.progress.completed?'secondary':'primary')}${button('Ir a la evaluación →','quiz','link')}</div>`;
+if(state.tab==='notes'){$('#lesson-body').innerHTML=`<div class="lesson-copy"><h2>Tus ideas, para la próxima llamada</h2><p>Guarda recordatorios y ejemplos. Solo tú puedes ver estas notas.</p><form id="notes-form"><label>Notas personales<textarea name="notes" rows="12" maxlength="10000" placeholder="¿Qué vas a poner en práctica?">${escape(c.progress.notes)}</textarea></label><button class="primary" type="submit">Guardar notas</button></form></div>`;$('#notes-form').onsubmit=async e=>{e.preventDefault();await guarded(e.submitter,async()=>{await api(`/courses/${c.id}/progress`,'POST',{notes:new FormData(e.target).get('notes')});await loadCourses();toast('Notas guardadas');});};}
+if(state.tab==='quiz'){$('#lesson-body').innerHTML=`<div class="lesson-copy"><span class="badge">PON A PRUEBA LO APRENDIDO</span><h2>Tu siguiente paso</h2><p>${c.questions.length} preguntas · Necesitas ${c.pass}% para aprobar. Puedes volver a intentarlo.</p>${!c.questions.length?'<p>Esta capacitación todavía no tiene una evaluación.</p>':`<form id="quiz-form">${c.questions.map((q,i)=>`<fieldset class="question"><legend><span>${String(i+1).padStart(2,'0')}</span> ${escape(q.text)}</legend>${q.options.map((o,j)=>`<label class="answer"><input type="radio" name="q${i}" value="${j}" required><span>${escape(o)}</span></label>`).join('')}</fieldset>`).join('')}<button type="submit" class="primary">Enviar evaluación →</button></form>`}<div id="quiz-result" aria-live="polite"></div></div>`;if($('#quiz-form'))$('#quiz-form').onsubmit=async e=>{e.preventDefault();await guarded(e.submitter,async()=>{const form=new FormData(e.target);const result=await api(`/courses/${c.id}/attempt`,'POST',{revision:c.revision,answers:c.questions.map((_,i)=>Number(form.get('q'+i)))});await loadCourses();renderDetail();$('#quiz-form').hidden=true;$('#quiz-result').innerHTML=`<div class="quiz-result ${result.passed?'pass':'retry'}"><span>${result.passed?'✦':'↻'}</span><h2>${result.passed?'¡Capacitación aprobada!':'Sigue practicando'}</h2><strong>${result.score}%</strong><p>${result.correct} de ${result.total} respuestas correctas. ${result.passed?'Un paso más para dar una gran atención.':'Repasa el contenido y vuelve a intentarlo.'}</p>${button('Volver al contenido','content','secondary')}${button('Intentar de nuevo','quiz','link')}</div>`;});};}}
+function renderProgress(){const courses=state.courses.filter(c=>c.published);$('#workspace').innerHTML=heading('CADA PASO CUENTA','Mi progreso','Consulta tus avances y el historial de tus evaluaciones.')+`<div class="progress-list">${courses.map(c=>`<article class="progress-row"><span class="stat-icon ${passed(c)?'green':'purple'}">${passed(c)?'✓':'▤'}</span><div><h3>${escape(c.title)}</h3><small>${passed(c)?'Aprobada':c.progress.completed?'Contenido completado':'Pendiente'} · ${c.attempts.length} intento(s)</small></div><strong>${currentAttempt(c)?currentAttempt(c).score+'%':'—'}</strong>${button('Continuar →','open','secondary',`data-id="${c.id}"`)}</article>`).join('')||'<div class="empty">Todavía no tienes capacitaciones disponibles.</div>'}</div><h2 class="history-title">Historial de evaluaciones</h2><div class="history">${courses.flatMap(c=>c.attempts.map(a=>({...a,title:c.title,current:a.revision===c.revision}))).sort((a,b)=>b.id-a.id).map(a=>`<div class="history-row"><div><strong>${escape(a.title)}</strong><small>${formatDate(a.created)}${!a.current?' · Versión anterior':''}</small></div><span class="badge ${a.passed?'green':'orange'}">${a.score}% · ${a.passed?'Aprobado':'Por mejorar'}</span></div>`).join('')||'<p>Aquí aparecerán tus resultados cuando envíes tu primera evaluación.</p>'}</div>`;}
+function formatDate(v){return new Date(v.replace(' ','T')+'Z').toLocaleString('es-GT',{dateStyle:'medium',timeStyle:'short'});}
+async function renderTeam(){const box=$('#workspace');box.innerHTML=heading('APRENDIZAJE EN EQUIPO','Equipo y resultados','Gestiona los roles y revisa los intentos en tus capacitaciones.')+'<div class="loading">Cargando equipo…</div>';try{const data=await api('/team');if(state.view!=='team')return;state.team=data;box.innerHTML=heading('APRENDIZAJE EN EQUIPO','Equipo y resultados','Los participantes crean su cuenta. Puedes habilitarlos como capacitadores.')+`<section class="team-section"><h2>Personas del campus <span class="count">${data.users.length}</span></h2><div class="team-grid">${data.users.map(u=>`<article class="person"><span class="avatar">${escape(u.name.slice(0,2).toUpperCase())}</span><div><strong>${escape(u.name)}</strong><small>${escape(u.email)}</small></div>${u.id===state.user.id?'<span class="badge">Tú</span>':`<label class="role-select"><span class="sr-only">Rol de ${escape(u.name)}</span><select data-role-id="${u.id}"><option value="learner" ${u.role==='learner'?'selected':''}>Participante</option><option value="trainer" ${u.role==='trainer'?'selected':''}>Capacitador</option></select></label>`}</article>`).join('')}</div></section><section class="team-section"><h2>Resultados de tus capacitaciones</h2><div class="history">${data.results.map(r=>`<div class="history-row"><div><strong>${escape(r.name)}</strong><p>${escape(r.title)}</p><small>${formatDate(r.created)}</small></div><span class="badge ${r.passed?'green':'orange'}">${r.score}% · ${r.passed?'Aprobado':'Por mejorar'}</span></div>`).join('')||'<p>Aún no hay evaluaciones resueltas en tus capacitaciones.</p>'}</div></section>`;box.querySelectorAll('[data-role-id]').forEach(el=>el.onchange=()=>guarded(el,async()=>{try{await api('/team/'+el.dataset.roleId,'PUT',{role:el.value});toast('Rol actualizado');}catch(e){el.value=data.users.find(u=>u.id===Number(el.dataset.roleId)).role;throw e;}}));}catch(e){box.innerHTML='<div class="empty">'+escape(e.message)+button('Reintentar','team','secondary')+'</div>';}}
+function questionEditor(q,index){return `<fieldset class="editor-question"><legend>Pregunta <span class="question-number">${index+1}</span></legend><label>Enunciado<input class="q-text" value="${escape(q.text)}" maxlength="1000" required placeholder="Escribe una situación o pregunta"></label><div class="option-grid">${q.options.map((o,i)=>`<label>Opción ${i+1}<input class="q-option" value="${escape(o)}" maxlength="500" required placeholder="Respuesta ${i+1}"></label>`).join('')}</div><div class="question-footer"><label>Respuesta correcta<select class="q-correct">${q.options.map((_,i)=>`<option value="${i}" ${q.correct===i?'selected':''}>Opción ${i+1}</option>`).join('')}</select></label>${button('Eliminar pregunta','remove-question','danger-link')}</div></fieldset>`;}
+function renderEditor(){const c=state.courses.find(c=>c.id===state.selected)||{title:'',description:'',category:'Inducción',minutes:20,content:'',video:'',pass:80,published:0,questions:[]};$('#workspace').innerHTML=button('← Mis contenidos','manage','link back')+heading('ESPACIO DEL CAPACITADOR',c.id?'Edita tu capacitación':'Una nueva oportunidad para aprender','Prepara el contenido y diseña una prueba que ayude a ponerlo en práctica.')+`<form id="editor-form" class="editor"><section class="editor-section"><div class="editor-step">01</div><div><h2>Información de la capacitación</h2><label>Título<input name="title" required maxlength="150" value="${escape(c.title)}" placeholder="Ej. Manejo de objeciones con empatía"></label><label>Descripción breve<textarea name="description" rows="2" maxlength="600" placeholder="¿Qué aprenderá el participante?">${escape(c.description)}</textarea></label><div class="form-grid"><label>Categoría<input name="category" list="categories" required maxlength="80" value="${escape(c.category)}"><datalist id="categories"><option>Inducción</option><option>Habilidades</option><option>Ventas</option><option>Calidad</option><option>Operación</option></datalist></label><label>Duración estimada (minutos)<input name="minutes" type="number" min="1" max="1000" required value="${c.minutes}"></label></div></div></section><section class="editor-section"><div class="editor-step">02</div><div><h2>Contenido que conecta</h2><label>Enlace del video de YouTube <small>Opcional</small><input name="video" type="url" value="${c.video?'https://www.youtube.com/watch?v='+escape(c.video):''}" placeholder="https://www.youtube.com/watch?v=…"></label><p class="field-help">Sube el video a YouTube y pega su enlace aquí. También puedes usar videos no listados que permitan insertarse.</p><label>Material de aprendizaje<textarea name="content" rows="10" required maxlength="50000" placeholder="Agrega instrucciones, ejemplos, guiones de llamada y lo que necesita saber el equipo…">${escape(c.content)}</textarea></label><label class="import-label">↑ Importar contenido de un archivo .txt<input type="file" id="import-content" accept=".txt,text/plain"></label><p class="field-help">El texto importado se guardará como contenido de la capacitación.</p></div></section><section class="editor-section"><div class="editor-step">03</div><div><h2>Diseña tu evaluación</h2><p>Selección única, calificación automática y resultados por participante.</p><label class="pass-input">Nota mínima para aprobar (%)<input type="number" name="pass" min="1" max="100" required value="${c.pass}"></label><div id="questions">${c.questions.map(questionEditor).join('')}</div>${button('+ Agregar pregunta','add-question','secondary')}</div></section><div class="editor-save"><label class="publish-check"><input type="checkbox" name="published" ${c.published?'checked':''}><span><strong>Publicar para el equipo</strong><small>Desactívalo para guardar como borrador.</small></span></label><button type="submit" class="primary">Guardar capacitación →</button></div><p id="editor-error" class="error" role="alert"></p></form>`;$('#import-content').onchange=async e=>{const file=e.target.files[0];if(!file)return;if(file.size>150000){toast('El archivo debe pesar menos de 150 KB.');return;}try{const text=await file.text();if(text.length>50000)throw Error('El contenido admite hasta 50,000 caracteres.');const area=$('[name=content]');const combined=area.value.trim()?area.value+'\n\n'+text:text;if(combined.length>50000)throw Error('El contenido total admite hasta 50,000 caracteres.');area.value=combined;toast('Texto importado. Guarda la capacitación para conservarlo.');}catch(err){toast(err.message);}};$('#editor-form').onsubmit=async e=>{e.preventDefault();await guarded(e.submitter,async()=>{const f=new FormData(e.target);const questions=[...document.querySelectorAll('.editor-question')].map(el=>({text:el.querySelector('.q-text').value,options:[...el.querySelectorAll('.q-option')].map(o=>o.value),correct:Number(el.querySelector('.q-correct').value)}));try{await api(c.id?'/courses/'+c.id:'/courses',c.id?'PUT':'POST',{title:f.get('title'),description:f.get('description'),category:f.get('category'),minutes:Number(f.get('minutes')),content:f.get('content'),video:f.get('video'),pass:Number(f.get('pass')),published:f.has('published'),questions});state.view='manage';state.category='Todas';state.query='';await refresh();toast('Capacitación guardada');}catch(err){$('#editor-error').textContent=err.message;}});};}
+async function guarded(button,fn){if(button)button.disabled=true;try{await fn();}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}}
+async function loadCourses(){state.courses=(await api('/courses')).courses;}
+async function refresh(){await loadCourses();shell();}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;e.preventDefault();await guarded(b,async()=>{const action=b.dataset.action;if(action==='portal'){state.authEmail=$('[name=email]')?.value||'';state.portal=b.dataset.portal;return renderAuth();}if(action==='auth-switch'){state.authMode=state.authMode==='register'?'login':'register';return renderAuth();}if(action==='logout'){await api('/logout','POST',{});state.user=null;state.courses=[];state.view='home';state.authMode='login';return renderAuth();}if(action==='nav'||['back','manage','team'].includes(action)){state.view=action==='nav'?b.dataset.view:action==='back'?'catalog':action;state.query='';state.category='Todas';return shell();}if(action==='filter'){state.category=b.dataset.category;return renderCatalog();}if(action==='open'||action==='edit'||action==='open-quiz'){state.selected=Number(b.dataset.id);state.view=action==='edit'?'editor':'detail';state.tab=action==='open-quiz'?'quiz':'content';return shell();}if(action==='new'){state.selected=null;state.view='editor';return shell();}if(action==='tab'||action==='quiz'||action==='content'){state.tab=action==='tab'?b.dataset.tab:action;return renderDetail();}if(action==='complete'){await api(`/courses/${state.selected}/progress`,'POST',{completed:true});await loadCourses();renderDetail();return toast('Contenido completado. ¡Continúa con la evaluación!');}if(action==='add-question'){const count=document.querySelectorAll('.editor-question').length;if(count>=50)return toast('Puedes agregar hasta 50 preguntas.');$('#questions').insertAdjacentHTML('beforeend',questionEditor({text:'',options:['','','',''],correct:0},count));$('#questions').lastElementChild.querySelector('input').focus();}if(action==='remove-question'){b.closest('fieldset').remove();document.querySelectorAll('.question-number').forEach((el,i)=>el.textContent=i+1);}});});
+try{const session=await api('/session');state.user=session.user;state.authMode=session.needsSetup?'setup':'login';if(state.user)await refresh();else renderAuth();}catch(e){$('#app').innerHTML=`<main class="connection-error"><h1>No pudimos conectar con el campus</h1><p>Comprueba que el servidor esté disponible y vuelve a cargar la página.</p><p>${escape(e.message)}</p><a href="/" class="primary">Volver a intentar</a></main>`;}
 
-const modules = [
-  {
-    id: 1,
-    section: "Inicio",
-    title: "Induccion y cultura de servicio",
-    description: "Conoce el proposito del equipo, estandares de atencion y rituales para dar seguimiento con claridad.",
-    category: "Onboarding",
-    duration_minutes: 28,
-    level: "Inicial",
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    accent: "#e40046",
-    lessons: [
-      { title: "Bienvenida al programa", minutes: 6, summary: "Objetivos, reglas del recorrido y expectativas de participacion." },
-      { title: "Momentos de verdad", minutes: 10, summary: "Como reconocer situaciones criticas en la experiencia del cliente." },
-      { title: "Cierre con compromiso", minutes: 12, summary: "Definir una accion concreta para aplicar durante la semana." }
-    ]
-  },
-  {
-    id: 2,
-    section: "Habilidades",
-    title: "Comunicacion efectiva",
-    description: "Practica mensajes breves, escucha activa y escalamiento oportuno para equipos operativos.",
-    category: "Habilidades",
-    duration_minutes: 34,
-    level: "Intermedio",
-    video_url: "https://www.youtube.com/embed/jNQXAC9IVRw",
-    accent: "#2f66d0",
-    lessons: [
-      { title: "Escucha activa", minutes: 9, summary: "Tecnicas para confirmar entendimiento sin frenar la conversacion." },
-      { title: "Mensajes claros", minutes: 11, summary: "Estructura de contexto, accion requerida y fecha limite." },
-      { title: "Escalamiento", minutes: 14, summary: "Cuando pedir apoyo y que informacion incluir." }
-    ]
-  },
-  {
-    id: 3,
-    section: "Cumplimiento",
-    title: "Seguridad de informacion",
-    description: "Aprende buenas practicas para proteger datos, accesos, equipos y documentos internos.",
-    category: "Cumplimiento",
-    duration_minutes: 31,
-    level: "Obligatorio",
-    video_url: "https://www.youtube.com/embed/3JZ_D3ELwOQ",
-    accent: "#111111",
-    lessons: [
-      { title: "Datos sensibles", minutes: 8, summary: "Identificar informacion que requiere resguardo especial." },
-      { title: "Accesos y contrasenas", minutes: 10, summary: "Practicas minimas para cuentas y dispositivos." },
-      { title: "Incidentes", minutes: 13, summary: "Como reportar alertas sin retrasar la respuesta." }
-    ]
-  },
-  {
-    id: 4,
-    section: "Operacion",
-    title: "Excelencia operativa",
-    description: "Convierte procesos repetibles en resultados medibles con indicadores, controles y retrospectivas.",
-    category: "Operacion",
-    duration_minutes: 42,
-    level: "Avanzado",
-    video_url: "https://www.youtube.com/embed/tgbNymZ7vqY",
-    accent: "#f5c400",
-    lessons: [
-      { title: "Indicadores utiles", minutes: 12, summary: "Distinguir indicadores de actividad, calidad y resultado." },
-      { title: "Control diario", minutes: 15, summary: "Rutina breve para detectar desviaciones temprano." },
-      { title: "Mejora continua", minutes: 15, summary: "Cerrar ciclos con aprendizaje y responsable asignado." }
-    ]
-  }
-];
 
-const state = {
-  selectedId: 1,
-  activeSection: "Todas",
-  activeView: "learning",
-  localVideoUrl: null,
-  saved: loadSaved()
-};
-
-const els = {
-  moduleList: document.querySelector("#moduleList"),
-  sectionTabs: document.querySelector("#sectionTabs"),
-  detailPanel: document.querySelector("#detailPanel"),
-  template: document.querySelector("#moduleCardTemplate"),
-  sectionTemplate: document.querySelector("#sectionTabTemplate"),
-  heroPercent: document.querySelector("#heroPercent"),
-  heroMeter: document.querySelector("#heroMeter"),
-  statModules: document.querySelector("#statModules"),
-  statCompleted: document.querySelector("#statCompleted"),
-  statHours: document.querySelector("#statHours"),
-  statScore: document.querySelector("#statScore")
-};
-
-document.querySelectorAll(".nav-item").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    state.activeView = button.dataset.view;
-    renderDetail();
-  });
-});
-
-function loadSaved() {
+﻿function renderAuth() {
+  const setup=state.authMode==='setup', register=state.authMode==='register';
+  const trainer=setup||state.portal==='trainer';
+  $('#app').innerHTML=`<main class="auth ${trainer?'trainer-auth':'learner-auth'}"><section class="auth-story">${brand()}<div><span class="eyebrow">${trainer?'ESPACIO DEL CAPACITADOR':'ESPACIO DEL PARTICIPANTE'}</span><h1>${trainer?'Forma al equipo.<br>Impulsa su talento.':'Aprende hoy.<br>Conecta mejor mañana.'}</h1><p>${trainer?'Prepara contenido, diseña pruebas y acompaña el avance de las personas que capacitas.':'Encuentra tus capacitaciones, practica a tu ritmo y demuestra lo que aprendiste.'}</p><div class="role-journey">${(trainer?['Crea capacitaciones con YouTube','Publica tus propias evaluaciones','Da seguimiento a cada participante']:['Estudia videos y material de apoyo','Resuelve tus evaluaciones','Consulta tu avance y resultados']).map((x,i)=>`<div><span>0${i+1}</span>${x}</div>`).join('')}</div></div><small>Innovatek · Dos espacios, un equipo que crece</small></section><section class="auth-side"><div class="auth-box"><span class="badge">${setup?'CONFIGURACIÓN INICIAL':'BIENVENIDO AL CAMPUS'}</span><h2>${setup?'Crea el primer capacitador':register?'Crea tu cuenta de participante':'¿Cómo vas a ingresar?'}</h2>${!setup&&!register?`<div class="portal-picker" aria-label="Tipo de acceso">${[['learner','Participante','Voy a capacitarme','▤'],['trainer','Capacitador','Voy a formar al equipo','◈']].map(([id,title,desc,icon])=>`<button type="button" data-action="portal" data-portal="${id}" class="portal-option ${state.portal===id?'selected':''}" aria-pressed="${state.portal===id}"><span>${icon}</span><strong>${title}</strong><small>${desc}</small></button>`).join('')}</div>`:''}<p>${setup?'Esta cuenta podrá preparar contenido y habilitar a otros capacitadores.':register?'Tu cuenta tendrá acceso de participante.':'Usa el correo y contraseña de tu cuenta.'}</p><form id="auth-form">${setup||register?'<label>Nombre completo<input name="name" autocomplete="name" required maxlength="100" placeholder="Tu nombre y apellido"></label>':''}<label>Correo electrónico<input name="email" type="email" autocomplete="email" required placeholder="nombre@empresa.com" value="${escape(state.authEmail||'')}"></label><label>Contraseña<input name="password" type="password" autocomplete="${setup||register?'new-password':'current-password'}" required minlength="${setup||register?10:1}" maxlength="200" placeholder="${setup||register?'Mínimo 10 caracteres':'Tu contraseña'}"></label><p id="form-error" class="error" role="alert"></p><button class="primary wide" type="submit">${setup?'Crear cuenta de capacitador':register?'Registrarme como participante':trainer?'Entrar como capacitador':'Entrar como participante'} <span>→</span></button></form>${!setup?`<div class="auth-switch">${register?'¿Ya tienes una cuenta?':trainer?'¿Necesitas acceso de capacitador?':'¿Es tu primera capacitación?'} ${register||!trainer?button(register?'Iniciar sesión':'Crear cuenta','auth-switch','link'):'<p class="field-help">Pide a un capacitador del campus que habilite tu cuenta desde Equipo y resultados.</p>'}</div>`:''}<div class="auth-note"><span>◇</span> ${trainer?'El acceso depende del rol autorizado de tu cuenta.':'Tu avance y tus notas se guardan en tu cuenta personal.'}</div></div></section></main>`;
+  $('#auth-form').onsubmit=async e=>{e.preventDefault();const submit=e.submitter;submit.disabled=true;try{const data=Object.fromEntries(new FormData(e.target));if(!setup&&!register)data.portal=state.portal;state.user=(await api('/'+(setup?'setup':register?'register':'login'),'POST',data)).user;state.view='home';state.authEmail='';await refresh();}catch(err){const error=$('#form-error');if(error)error.textContent=err.message;else toast(err.message);}finally{submit.disabled=false;}};
+}
+function shell() {
+  const trainer=state.user.role==='trainer';
+  const allowed=trainer?['home','manage','team','editor','detail']:['home','catalog','progress','detail'];
+  if(!allowed.includes(state.view))state.view='home';
+  const nav=trainer?[['home','◈','Panel del capacitador'],['manage','▤','Mis capacitaciones'],['team','♧','Equipo y resultados']]:[['home','⌂','Mi inicio'],['catalog','▤','Mis capacitaciones'],['progress','✓','Mis resultados']];
+  const title=nav.find(([id])=>id===state.view)?.[2]||(state.view==='editor'?'Editor de capacitación':trainer?'Vista previa':'Mi aprendizaje');
+  $('#app').innerHTML=`<div class="app-shell ${trainer?'trainer-space':'learner-space'}"><aside class="sidebar">${brand()}<div class="workspace-role"><span>${trainer?'◈':'▤'}</span>${trainer?'CAPACITADOR':'PARTICIPANTE'}</div><div class="nav-label">${trainer?'GESTIONAR FORMACIÓN':'MI APRENDIZAJE'}</div><nav aria-label="Navegación principal">${nav.map(([id,icon,label])=>`<button class="nav-item ${state.view===id?'active':''}" data-action="nav" data-view="${id}" ${state.view===id?'aria-current="page"':''}><span>${icon}</span>${label}</button>`).join('')}</nav><div class="sidebar-tip"><span class="tip-icon">${trainer?'◈':'✦'}</span><strong>${trainer?'Acompaña a tu equipo.':'Una habilidad a la vez.'}</strong><p>${trainer?'Identifica quién necesita apoyo y da seguimiento a sus resultados.':'Completa el contenido y continúa con la evaluación.'}</p></div><div class="profile"><span class="avatar">${escape(state.user.name.slice(0,2).toUpperCase())}</span><div><strong>${escape(state.user.name)}</strong><small>${trainer?'Capacitador':'Participante'}</small></div><button class="icon-button" data-action="logout" title="Cerrar sesión" aria-label="Cerrar sesión">↪</button></div></aside><main class="main"><header class="topbar"><div><span class="breadcrumb">Campus <span>/</span> ${title}</span></div><span class="top-role">${trainer?'Gestión de la formación':'Mi espacio de aprendizaje'}</span></header><div id="workspace"></div><footer>INNOVATEK <span>${trainer?'Personas que enseñan. Equipos que crecen.':'Aprender también es parte del trabajo.'}</span></footer></main></div>`;
+  renderView();
+}
+function renderLearnerHome() {
+  const courses=state.courses.filter(c=>c.published);
+  const complete=courses.filter(passed),pending=courses.filter(c=>!passed(c));
+  const next=pending.find(c=>c.progress.completed)||pending[0];
+  const total=courses.length, percent=total?Math.round(complete.length/total*100):0;
+  $('#workspace').innerHTML=heading('MI ESPACIO DE APRENDIZAJE',`Tu siguiente paso, ${escape(state.user.name.split(' ')[0])}`,'Aquí tienes lo que necesitas estudiar y las evaluaciones por completar.')+`<section class="learner-focus"><div><span class="badge light">${next?'CONTINÚA TU FORMACIÓN':total?'RUTA COMPLETADA':'LISTO PARA EMPEZAR'}</span><h2>${next?escape(next.title):total?'¡Completaste todas tus capacitaciones!':'Tu aprendizaje empieza aquí'}</h2><p>${next?escape(next.description):total?'Puedes repasar el material y consultar tus resultados cuando lo necesites.':'Tu capacitador publicará el contenido y las pruebas en este espacio.'}</p>${next?button(next.progress.completed?'Resolver evaluación →':'Comenzar capacitación →',next.progress.completed?'open-quiz':'open','primary',`data-id="${next.id}"`):button('Ver mis resultados →','nav','secondary','data-view="progress"')} ${next?`<small>◷ ${next.minutes} min · ${next.questions.length} preguntas · ${escape(next.trainer)}</small>`:''}</div><div class="personal-progress"><span class="progress-seal">${percent}<small>%</small></span><strong>${complete.length} de ${total} aprobadas</strong><span>${pending.length} por completar</span><progress value="${percent}" max="100" aria-label="Capacitaciones aprobadas"></progress></div></section><div class="learner-status"><div><span>Por estudiar</span><strong>${pending.filter(c=>!c.progress.completed).length}</strong></div><div><span>Evaluaciones pendientes</span><strong>${pending.filter(c=>c.progress.completed).length}</strong></div><div><span>Capacitaciones aprobadas</span><strong>${complete.length}</strong></div></div><section class="learning-road"><div class="section-heading"><h2>Tu ruta de capacitación</h2>${button('Ver biblioteca →','nav','link','data-view="catalog"')}</div>${courses.map((c,i)=>`<article class="road-row"><span class="road-number ${passed(c)?'done':''}">${passed(c)?'✓':String(i+1).padStart(2,'0')}</span><div><span class="eyebrow">${escape(c.category)}</span><h3>${escape(c.title)}</h3><small>${escape(c.trainer)} · ${c.minutes} min</small></div><span class="badge ${passed(c)?'green':c.progress.completed?'orange':''}">${passed(c)?'Aprobada':c.progress.completed?'Evaluación pendiente':'Por estudiar'}</span>${button(passed(c)?'Repasar →':'Continuar →','open','secondary',`data-id="${c.id}"`)}</article>`).join('')||'<div class="empty"><h3>Aún no hay capacitaciones publicadas</h3><p>Cuando tu capacitador publique una, aparecerá aquí.</p></div>'}</section>`;
+}
+async function renderTrainerDashboard() {
+  $('#workspace').innerHTML=heading('GESTIÓN DE LA FORMACIÓN','Panel del capacitador','Prepara el aprendizaje y acompaña a quienes se están capacitando.',button('+ Crear capacitación','new'))+'<div class="loading">Cargando el avance de tu equipo…</div>';
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
+    const data=await api('/dashboard');
+    if(state.view!=='home'||state.user?.role!=='trainer')return;
+    state.dashboard=data;
+    $('#workspace').innerHTML=heading('ESPACIO DEL CAPACITADOR',`Forma, acompaña y evalúa`,'Gestiona tus capacitaciones y el avance de los participantes.',button('+ Crear capacitación','new'))+`<section class="trainer-metrics">${[['♧',data.stats.learners,'Participantes','Personas que se capacitan'],['▤',data.stats.published,'Capacitaciones publicadas',data.stats.drafts+' en borrador'],['✓',data.stats.passed,'Aprobaciones','En versiones vigentes'],['◷',data.stats.pending,'Por completar','Capacitaciones por participante']].map(([icon,value,title,desc])=>`<article><span class="metric-icon">${icon}</span><strong>${value}</strong><h2>${title}</h2><small>${desc}</small></article>`).join('')}</section><div class="trainer-columns"><section class="management-panel"><div class="section-heading"><h2>Tus capacitaciones</h2>${button('Ver todas →','manage','link')}</div>${data.courses.slice(0,5).map(c=>`<article class="managed-course"><div><span class="badge ${c.published?'green':''}">${c.published?'Publicada':'Borrador'}</span><h3>${escape(c.title)}</h3><small>${c.published?`${c.passed} de ${c.participants} participantes han aprobado`:'Solo tú puedes ver este contenido'}</small></div><div class="managed-actions">${button('Editar','edit','secondary',`data-id="${c.id}"`)}${button('Vista previa ↗','open','link',`data-id="${c.id}"`)}</div>${c.published?`<progress value="${c.passed}" max="${c.participants||1}" aria-label="Participantes aprobados en ${escape(c.title)}"></progress>`:''}</article>`).join('')||'<div class="empty"><h3>Comparte tu primera capacitación</h3><p>Agrega contenido y crea la evaluación para el equipo.</p></div>'}</section><section class="management-panel"><div class="section-heading"><h2>Evaluaciones recientes</h2></div>${data.recent.map(a=>`<article class="recent-result"><span class="avatar">${escape(a.name.slice(0,2).toUpperCase())}</span><div><strong>${escape(a.name)}</strong><p>${escape(a.title)}</p><small>${formatDate(a.created)}</small></div><span class="badge ${a.passed?'green':'orange'}">${a.score}%</span></article>`).join('')||'<div class="quiet-empty"><span>◷</span><strong>Esperando las primeras respuestas</strong><p>Los resultados aparecerán cuando los participantes envíen sus pruebas.</p></div>'}</section></div><section class="management-panel follow-up"><div class="section-heading"><div><h2>Seguimiento de participantes</h2><p>Incluye a quienes todavía no han comenzado.</p></div><label class="follow-filter">Capacitación<select id="follow-course"><option value="all">Todas las publicadas</option>${data.courses.filter(c=>c.published).map(c=>`<option value="${c.id}">${escape(c.title)}</option>`).join('')}</select></label></div><div id="follow-roster"></div></section>`;
+    renderFollowRoster();$('#follow-course').onchange=renderFollowRoster;
+  }catch(err){if(state.view==='home'&&state.user?.role==='trainer')$('#workspace').innerHTML=heading('PANEL DEL CAPACITADOR','No pudimos cargar el avance',escape(err.message))+button('Reintentar','nav','primary','data-view="home"');}
 }
-
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.saved));
+function renderFollowRoster() {
+  const filter=$('#follow-course').value;
+  $('#follow-roster').innerHTML=state.dashboard.learners.map(u=>{
+    const courses=u.courses.filter(c=>filter==='all'||c.id===Number(filter));
+    const approved=courses.filter(c=>c.status==='passed').length;
+    return `<article class="roster-person"><div class="roster-person-heading"><span class="avatar">${escape(u.name.slice(0,2).toUpperCase())}</span><div><strong>${escape(u.name)}</strong><small>${escape(u.email)}</small></div><span class="roster-count">${approved}/${courses.length} aprobadas</span></div><div class="roster-courses">${courses.map(c=>`<div><span>${escape(c.title)}</span><span class="badge ${c.status==='passed'?'green':['retry','ready'].includes(c.status)?'orange':''}">${{passed:'Aprobada',retry:'Necesita repasar',ready:'Prueba pendiente',pending:'Por estudiar'}[c.status]}${c.score===null?'':' · '+c.score+'%'}</span></div>`).join('')||'<p>No hay capacitaciones publicadas para mostrar.</p>'}</div></article>`;
+  }).join('')||'<div class="empty"><h3>Todavía no hay participantes</h3><p>Las personas deben crear su cuenta con el acceso de participante para aparecer aquí.</p></div>';
 }
-
-function moduleState(moduleId) {
-  state.saved[moduleId] ||= {
-    completed: false,
-    score: null,
-    note: "",
-    videoUrl: modules.find((module) => module.id === moduleId)?.video_url || ""
-  };
-  return state.saved[moduleId];
-}
-
-function dashboardStats() {
-  const completed = modules.filter((module) => moduleState(module.id).completed);
-  const scored = modules
-    .map((module) => Number(moduleState(module.id).score))
-    .filter((score) => Number.isFinite(score));
-
-  return {
-    totalModules: modules.length,
-    completedModules: completed.length,
-    totalMinutes: modules.reduce((sum, module) => sum + module.duration_minutes, 0),
-    percent: Math.round((completed.length / modules.length) * 100),
-    averageScore: scored.length ? Math.round(scored.reduce((sum, score) => sum + score, 0) / scored.length) : 0
-  };
-}
-
-function render() {
-  renderStats();
-  renderSections();
-  renderModules();
-  renderDetail();
-}
-
-function renderStats() {
-  const stats = dashboardStats();
-  els.heroPercent.textContent = `${stats.percent}%`;
-  els.heroMeter.style.width = `${stats.percent}%`;
-  els.statModules.textContent = stats.totalModules;
-  els.statCompleted.textContent = stats.completedModules;
-  els.statHours.textContent = (stats.totalMinutes / 60).toFixed(1);
-  els.statScore.textContent = `${stats.averageScore}%`;
-}
-
-function renderModules() {
-  els.moduleList.replaceChildren();
-
-  const visibleModules = modules.filter((module) => state.activeSection === "Todas" || module.section === state.activeSection);
-
-  for (const module of visibleModules) {
-    const saved = moduleState(module.id);
-    const fragment = els.template.content.cloneNode(true);
-    const card = fragment.querySelector(".module-card");
-    const chip = fragment.querySelector(".module-chip");
-    const title = fragment.querySelector("strong");
-    const meta = fragment.querySelector("small");
-    const progress = fragment.querySelector(".module-progress");
-
-    card.classList.toggle("active", module.id === state.selectedId);
-    card.style.setProperty("--blue", module.accent);
-    chip.style.background = module.accent;
-    title.textContent = module.title;
-    meta.textContent = `${module.category} | ${module.duration_minutes} min | ${module.level}`;
-    progress.textContent = saved.completed ? "Finalizado" : "Pendiente";
-
-    card.addEventListener("click", () => {
-      state.selectedId = module.id;
-      clearLocalVideo();
-      render();
-    });
-
-    els.moduleList.appendChild(fragment);
-  }
-}
-
-function renderSections() {
-  const sections = ["Todas", ...new Set(modules.map((module) => module.section))];
-  els.sectionTabs.replaceChildren();
-
-  for (const section of sections) {
-    const fragment = els.sectionTemplate.content.cloneNode(true);
-    const button = fragment.querySelector(".section-tab");
-    const title = fragment.querySelector("strong");
-    const count = fragment.querySelector("span");
-    const amount = section === "Todas" ? modules.length : modules.filter((module) => module.section === section).length;
-
-    button.classList.toggle("active", section === state.activeSection);
-    title.textContent = section;
-    count.textContent = `${amount} modulo${amount === 1 ? "" : "s"}`;
-
-    button.addEventListener("click", () => {
-      state.activeSection = section;
-      const stillVisible = modules.some((module) => module.id === state.selectedId && (section === "Todas" || module.section === section));
-      if (!stillVisible) {
-        state.selectedId = modules.find((module) => section === "Todas" || module.section === section)?.id;
-      }
-      clearLocalVideo();
-      render();
-    });
-
-    els.sectionTabs.appendChild(fragment);
-  }
-}
-
-function selectedModule() {
-  return modules.find((module) => module.id === state.selectedId);
-}
-
 function renderDetail() {
-  const module = selectedModule();
-  if (!module) return;
-
-  if (state.activeView === "progress") return renderProgressView(module);
-  if (state.activeView === "resources") return renderResourcesView(module);
-  if (state.activeView === "admin") return renderAdminView(module);
-
-  renderLearningView(module);
+  if(state.user.role==='learner')return renderLearnerDetail();
+  const c=state.courses.find(c=>c.id===state.selected&&c.owner===state.user.id);
+  if(!c){state.view='manage';return shell();}
+  $('#workspace').innerHTML=`${button('← Mis capacitaciones','manage','link back')}<div class="preview-notice"><span>◈</span><div><strong>Vista previa del capacitador</strong><p>Revisa el contenido y la clave de respuestas. Esta vista no registra avances ni intentos.</p></div>${button('Editar capacitación','edit','secondary',`data-id="${c.id}"`)}</div><div class="lesson-heading"><span class="eyebrow">${escape(c.category)} · ${c.published?'PUBLICADA':'BORRADOR'}</span><h1>${escape(c.title)}</h1><p>${escape(c.description)}</p></div><section class="lesson-panel"><div class="tabs"><button data-action="content" class="${state.tab!=='quiz'?'active':''}">Contenido del participante</button><button data-action="quiz" class="${state.tab==='quiz'?'active':''}">Prueba y respuestas</button></div>${state.tab==='quiz'?`<div class="lesson-copy"><h2>${c.questions.length} preguntas · Nota mínima ${c.pass}%</h2><p>La respuesta correcta solo es visible para ti, como autor de esta capacitación.</p>${c.questions.map((q,i)=>`<div class="preview-question"><h3>${i+1}. ${escape(q.text)}</h3>${q.options.map((o,j)=>`<div class="preview-answer ${q.correct===j?'correct':''}"><span>${String.fromCharCode(65+j)}</span>${escape(o)}${q.correct===j?'<strong>✓ Correcta</strong>':''}</div>`).join('')}</div>`).join('')||'<p>Agrega preguntas desde el editor antes de publicar.</p>'}</div>`:`${c.video?`<div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${escape(c.video)}" title="Vista previa de ${escape(c.title)}" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`:''}<div class="lesson-copy"><h2>Material de aprendizaje</h2><div class="prose">${escape(c.content)}</div></div>`}</section>`;
 }
-
-function renderLearningView(module) {
-  const saved = moduleState(module.id);
-  els.detailPanel.innerHTML = `
-    <div class="video-frame">${videoMarkup(module)}</div>
-
-    <div class="detail-header">
-      <div class="detail-meta">
-        <span class="pill">${module.category}</span>
-        <span class="pill">${module.section}</span>
-        <span class="pill">${module.duration_minutes} minutos</span>
-        <span class="pill">${module.level}</span>
-        <span class="pill">${state.localVideoUrl ? "Archivo local" : "YouTube"}</span>
-      </div>
-      <h2>${module.title}</h2>
-      <p>${module.description}</p>
-    </div>
-
-    <div class="lesson-list">
-      ${module.lessons.map((lesson, index) => `
-        <div class="lesson">
-          <strong>${index + 1}. ${lesson.title}</strong>
-          <span>${lesson.minutes} min | ${lesson.summary}</span>
-        </div>
-      `).join("")}
-    </div>
-
-    <textarea class="notes-box" id="notesBox" maxlength="1500" placeholder="Escribe notas, dudas o acuerdos de aplicacion...">${escapeHtml(saved.note || "")}</textarea>
-
-    <div class="detail-actions">
-      <input class="score-input" id="scoreInput" type="number" min="0" max="100" value="${saved.score ?? ""}" placeholder="Puntaje de evaluacion 0-100">
-      <button class="ghost-btn" id="saveNoteBtn">Guardar nota</button>
-      <button class="primary-btn" id="completeBtn">${saved.completed ? "Actualizar progreso" : "Marcar completado"}</button>
-    </div>
-  `;
-
-  document.querySelector("#saveNoteBtn").addEventListener("click", () => saveNote(module.id));
-  document.querySelector("#completeBtn").addEventListener("click", () => saveProgress(module.id));
-}
-
-function videoMarkup(module) {
-  const saved = moduleState(module.id);
-  if (state.localVideoUrl) {
-    return `
-      <video controls preload="metadata">
-        <source src="${state.localVideoUrl}" type="video/mp4">
-        Tu navegador no puede reproducir este video.
-      </video>
-    `;
-  }
-
-  return `
-    <iframe
-      src="${saved.videoUrl || module.video_url}"
-      title="Video de ${escapeHtml(module.title)}"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-      allowfullscreen>
-    </iframe>
-  `;
-}
-
-function renderProgressView(module) {
-  const stats = dashboardStats();
-  const completed = modules.filter((item) => moduleState(item.id).completed);
-  const pending = modules.filter((item) => !moduleState(item.id).completed);
-
-  els.detailPanel.innerHTML = `
-    <div class="detail-header">
-      <span class="eyebrow">Panel de avance</span>
-      <h2>${stats.percent}% completado</h2>
-      <p>Modulo seleccionado: ${module.title}</p>
-    </div>
-
-    <div class="lesson-list">
-      <div class="lesson">
-        <strong>Finalizados</strong>
-        <span>${completed.length ? completed.map((item) => item.title).join(", ") : "Aun no hay modulos finalizados."}</span>
-      </div>
-      <div class="lesson">
-        <strong>Pendientes</strong>
-        <span>${pending.length ? pending.map((item) => item.title).join(", ") : "Ruta completa."}</span>
-      </div>
-      <div class="lesson">
-        <strong>Promedio de evaluacion</strong>
-        <span>${stats.averageScore}% guardado en este navegador.</span>
-      </div>
-    </div>
-  `;
-}
-
-function renderResourcesView(module) {
-  els.detailPanel.innerHTML = `
-    <div class="detail-header">
-      <span class="eyebrow">Material de apoyo</span>
-      <h2>Recursos para ${module.title}</h2>
-      <p>Material de apoyo para presentar el flujo de capacitacion y seguimiento.</p>
-    </div>
-
-    <ul class="resource-list">
-      <li>
-        <strong>Guia rapida</strong>
-        <span>Resumen operativo para consultar antes de aplicar el modulo.</span>
-      </li>
-      <li>
-        <strong>Checklist de aplicacion</strong>
-        <span>Lista de verificacion para supervisores o participantes.</span>
-      </li>
-      <li>
-        <strong>Evidencia sugerida</strong>
-        <span>Captura, documento o comentario que demuestre la practica realizada.</span>
-      </li>
-    </ul>
-  `;
-}
-
-function renderAdminView(module) {
-  const saved = moduleState(module.id);
-  els.detailPanel.innerHTML = `
-    <div class="detail-header">
-      <span class="eyebrow">Videos</span>
-      <h2>${module.title}</h2>
-      <p>Pega un enlace de YouTube para guardarlo en esta pagina. Tambien puedes probar un archivo local durante la presentacion.</p>
-    </div>
-
-    <form class="youtube-panel" id="youtubeForm">
-      <label class="field-label" for="youtubeInput">Enlace de YouTube</label>
-      <div class="url-row">
-        <input class="url-input" id="youtubeInput" type="url" value="${escapeHtml(saved.videoUrl || module.video_url)}" placeholder="https://www.youtube.com/watch?v=...">
-        <button class="primary-btn" type="submit">Usar YouTube</button>
-      </div>
-    </form>
-
-    <div class="upload-panel">
-      <label class="upload-box" for="videoInput">
-        <strong>Probar archivo local</strong>
-        <span>Solo se reproduce en esta sesion del navegador</span>
-        <input id="videoInput" name="video" type="file" accept="video/mp4,video/webm,video/quicktime,.m4v">
-      </label>
-      <div class="detail-actions">
-        <span class="upload-status" id="uploadStatus">GitHub Pages no guarda archivos subidos; usa YouTube para publicar.</span>
-        <button class="ghost-btn" id="clearLocalVideoBtn" type="button" ${state.localVideoUrl ? "" : "disabled"}>Quitar local</button>
-      </div>
-    </div>
-
-    <div class="video-frame compact-preview">${videoMarkup(module)}</div>
-  `;
-
-  document.querySelector("#youtubeForm").addEventListener("submit", saveYoutubeVideo);
-  document.querySelector("#videoInput").addEventListener("change", previewLocalVideo);
-  document.querySelector("#clearLocalVideoBtn").addEventListener("click", () => {
-    clearLocalVideo();
-    render();
-    toast("Video local quitado");
-  });
-}
-
-function saveProgress(moduleId) {
-  const saved = moduleState(moduleId);
-  const rawScore = document.querySelector("#scoreInput").value.trim();
-  const scoreValue = Number(rawScore);
-  saved.completed = true;
-  saved.score = rawScore && Number.isFinite(scoreValue) ? Math.max(0, Math.min(100, scoreValue)) : null;
-  persist();
-  render();
-  toast("Progreso guardado");
-}
-
-function saveNote(moduleId) {
-  moduleState(moduleId).note = document.querySelector("#notesBox").value;
-  persist();
-  toast("Nota guardada");
-}
-
-function saveYoutubeVideo(event) {
-  event.preventDefault();
-  const module = selectedModule();
-  const input = document.querySelector("#youtubeInput");
-  const embedUrl = youtubeEmbedUrl(input.value);
-
-  if (!embedUrl) {
-    document.querySelector("#uploadStatus").textContent = "Ingresa un enlace valido de YouTube.";
-    return;
-  }
-
-  moduleState(module.id).videoUrl = embedUrl;
-  clearLocalVideo();
-  persist();
-  render();
-  toast("YouTube guardado");
-}
-
-function previewLocalVideo(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  clearLocalVideo();
-  state.localVideoUrl = URL.createObjectURL(file);
-  document.querySelector("#uploadStatus").textContent = `${file.name} listo para reproducir.`;
-  renderDetail();
-}
-
-function clearLocalVideo() {
-  if (state.localVideoUrl) URL.revokeObjectURL(state.localVideoUrl);
-  state.localVideoUrl = null;
-}
-
-function youtubeEmbedUrl(rawUrl) {
-  try {
-    const parsed = new URL(String(rawUrl || "").trim());
-    const host = parsed.hostname.replace(/^www\./, "");
-    let videoId = "";
-
-    if (host === "youtu.be") videoId = parsed.pathname.split("/").filter(Boolean)[0] || "";
-    if (host === "youtube.com" || host === "m.youtube.com") {
-      if (parsed.pathname === "/watch") videoId = parsed.searchParams.get("v") || "";
-      if (parsed.pathname.startsWith("/embed/")) videoId = parsed.pathname.split("/")[2] || "";
-      if (parsed.pathname.startsWith("/shorts/")) videoId = parsed.pathname.split("/")[2] || "";
-    }
-
-    return /^[a-zA-Z0-9_-]{6,}$/.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : "";
-  } catch {
-    return "";
-  }
-}
-
-function toast(message) {
-  const current = document.querySelector(".toast");
-  current?.remove();
-
-  const element = document.createElement("div");
-  element.className = "toast";
-  element.textContent = message;
-  document.body.appendChild(element);
-
-  requestAnimationFrame(() => element.classList.add("show"));
-  setTimeout(() => element.remove(), 2400);
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-render();
