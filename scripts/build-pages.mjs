@@ -9,7 +9,7 @@ const apiStart = app.indexOf('async function api('), apiEnd = app.indexOf('\nfun
 if (apiStart < 0 || apiEnd < 0 || !app.includes('function renderAuth() {')) throw Error('La interfaz cambió: revisa los puntos de integración de la demostración.');
 app = app.slice(0, apiStart) + "const api = createDemoApi(localStorage, sessionStorage);" + app.slice(apiEnd);
 app = "import { createDemoApi, renderDemoLogin } from './local-api.mjs';\n" + app;
-const authStart = app.indexOf('function renderAuth() {'), authEnd = app.indexOf('function shell()', authStart);
+const authStart = app.indexOf('function renderAuth() {'), authEnd = app.indexOf('function toggleNavigation(', authStart);
 if (authEnd < 0) throw Error('No se encontró el final del acceso original.');
 app = app.slice(0, authStart) + `function renderAuth() {
   return renderDemoLogin(api, async user => { state.user = user; state.view = 'home'; await refresh(); }).catch(error => toast(error.message));
@@ -19,12 +19,14 @@ app = app.replaceAll('La respuesta correcta solo es visible para ti, como autor 
 app = app.replaceAll('Los participantes crean su cuenta. Puedes habilitarlos como capacitadores.', 'Puedes cambiar el rol de los perfiles de ejemplo de este navegador.');
 app = app.replaceAll('Los participantes crean su cuenta.', 'Los perfiles de ejemplo comparten este navegador.');
 app = app.replace('href="/"', 'href="./"');
+app = app.replace('<span>Cerrar sesión</span>', '<span>Cambiar perfil</span>');
 writeFileSync(resolve(output, 'app.js'), app);
 let html = readFileSync(resolve(root, 'index.html'), 'utf8');
 html = html.replace('<body>', '<body><aside class="demo-banner" aria-label="Modo demostración"><strong>DEMO · GitHub Pages</strong><span>Datos de prueba guardados solo en este navegador. No se sincronizan y se pierden al borrar los datos del sitio.</span></aside>');
 html = html.replace('</head>', '<link rel="stylesheet" href="demo.css"></head>');
 writeFileSync(resolve(output, 'index.html'), html);
 copyFileSync(resolve(root, 'styles.css'), resolve(output, 'styles.css'));
+copyFileSync(resolve(root, 'navigation.css'), resolve(output, 'navigation.css'));
 copyFileSync(resolve(root, 'demo/local-api.mjs'), resolve(output, 'local-api.mjs'));
 copyFileSync(resolve(root, 'demo/demo.css'), resolve(output, 'demo.css'));
 writeFileSync(resolve(output, '.nojekyll'), '');
