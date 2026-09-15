@@ -2,7 +2,19 @@
 
 Plataforma de capacitación para call center con interfaz en español, cuentas de capacitadores y participantes, cursos compartidos, videos de YouTube y evaluaciones calificadas en el servidor.
 
-## Ejecutar
+## Demostración en GitHub Pages
+
+Publicación desde `main`, carpeta `/docs`: https://aeortizcas.github.io/ModuloCapacitacion/
+
+- Selecciona uno de los tres perfiles de ejemplo; no se solicitan contraseñas.
+- Crea cursos como capacitador y cambia a participante para estudiar y resolver evaluaciones.
+- Los cursos, notas y resultados se guardan únicamente en el navegador. La selección de perfil dura la sesión de la pestaña.
+- No hay cuentas reales, privacidad entre personas que usan ese navegador, sincronización ni calificaciones protegidas. Usa datos de prueba. Borrar los datos del sitio elimina los cambios locales.
+- Los datos del servidor Node.js no se publican en esta demostración.
+
+Para actualizarla, ejecuta `node scripts/build-pages.mjs` después de modificar la interfaz y sube también los archivos generados en `docs/`. Pages sirve únicamente esa carpeta.
+
+## Ejecutar la versión con servidor
 
 Requiere Node.js 24 o superior. No necesita instalar dependencias.
 
