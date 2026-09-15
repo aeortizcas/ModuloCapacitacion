@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: innovatek-campus
+    runtime: node
+    plan: starter
+    buildCommand: npm run check && npm test
+    startCommand: APP_ORIGIN="${APP_ORIGIN:-$RENDER_EXTERNAL_URL}" npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DB_PATH
+        value: /var/data/training.db
+    disk:
+      name: training-data
+      mountPath: /var/data
+      sizeGB: 1

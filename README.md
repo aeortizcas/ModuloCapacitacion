@@ -35,6 +35,16 @@ Se incluyen tres capacitaciones iniciales editables. No se agregan videos fictic
 
 ## Uso compartido y publicación
 
+### Publicar en Render
+
+El archivo `render.yaml` prepara un servicio Node.js 24 con plan Starter y un disco persistente de 1 GB (servicios de pago). En Render, selecciona **New > Blueprint**, conecta este repositorio y revisa el costo antes de confirmar la creación.
+
+El despliegue ejecuta las verificaciones y pruebas antes de iniciar. La base de datos se guarda en `/var/data/training.db`; el origen HTTPS se toma de la URL que Render asigna al servicio. Para un dominio propio, configura `APP_ORIGIN` con su origen HTTPS exacto, sin barra final.
+
+Una instalación nueva empieza sin las cuentas y resultados locales. Antes de compartir el enlace, configura el primer capacitador: el primer registro de configuración obtiene ese rol. Si necesitas conservar los datos locales, migra la base de datos de forma privada antes de habilitar el servicio; no la subas al repositorio.
+
+Guía de Render: https://render.com/docs/infrastructure-as-code
+
 Esta versión reemplaza la aplicación estática: **GitHub Pages no ejecuta este servidor ni comparte su base de datos**. Se necesita un alojamiento que ejecute Node.js 24 y proporcione almacenamiento persistente para SQLite. No se ha desplegado una versión en Internet. El runtime de Sites/Cloudflare Workers requiere adaptar este servidor Node y su SQLite local a sus servicios antes de publicar allí.
 
 Variables opcionales del proceso:
