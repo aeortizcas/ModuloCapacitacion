@@ -33,6 +33,14 @@ assert.equal(initialDashboard.learners[0].courses.every(c=>c.status==='pending')
 const payload={title:'Escucha activa',category:'Habilidades',description:'Práctica real',minutes:20,content:'Escucha y confirma.',video:'https://youtu.be/abcdefghijk',published:false,pass:80,questions:[{text:'¿Qué haces primero?',options:['Escuchar','Interrumpir'],correct:0}]};
 assert.equal((await call('/courses',{method:'POST',cookie:learner,data:payload})).status,403);
 const created=await call('/courses',{method:'POST',cookie:trainer,data:payload});assert.equal(created.status,200);course=created.body.id;
+for(const video of ['https://www.youtube.com/watch?v=abcdefghijk&list=example','https://youtu.be/abcdefghijk?si=example','https://www.youtube.com/shorts/abcdefghijk','https://www.youtube.com/live/abcdefghijk','https://www.youtube.com/embed/abcdefghijk','https://m.youtube.com/watch?v=abcdefghijk']){
+  assert.equal((await call('/courses/'+course,{method:'PUT',cookie:trainer,data:{...payload,video}})).status,200,video);
+  const saved=(await call('/courses',{cookie:trainer})).body.courses.find(c=>c.id===course);
+  assert.equal(saved.video,'abcdefghijk');
+}
+for(const video of ['javascript:alert(1)','http://www.youtube.com/watch?v=abcdefghijk','https://youtube.com.evil.example/watch?v=abcdefghijk','https://www.youtube.com/watch?v=short']){
+  assert.equal((await call('/courses/'+course,{method:'PUT',cookie:trainer,data:{...payload,video}})).status,400,video);
+}
 assert.equal((await call('/courses',{cookie:learner})).body.courses.some(c=>c.id===course),false);
 assert.equal((await call('/courses/'+course,{method:'PUT',cookie:trainer,data:{...payload,video:'https://evil.example.com/watch?v=abcdefghijk'}})).status,400);
 assert.equal((await call('/courses/'+course,{method:'PUT',cookie:trainer,origin:'https://evil.example.com',data:payload})).status,403);
