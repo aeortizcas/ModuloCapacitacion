@@ -1,0 +1,691 @@
+===============================================================================
+INNOVACAMPUS
+INFORME DETALLADO DE AVANCES, CAMBIOS Y CARACTERÍSTICAS DEL PROYECTO
+===============================================================================
+
+Fecha de corte: 24 de septiembre de 2026
+Dirigido a: Gerencia, responsables de capacitación y área usuaria
+Proyecto: Módulo de Capacitación / InnovaCampus
+Estado: Versión funcional para pruebas locales y preparación de piloto
+Tecnología prevista para hosting básico: PHP puro, arquitectura MVC y SQLite
+Carácter del documento: Informe de situación; no constituye acta de aceptación
+ni certificación de seguridad o de puesta en producción.
+
+
+1. RESUMEN EJECUTIVO
+-------------------------------------------------------------------------------
+
+InnovaCampus es una plataforma de capacitación orientada a equipos de trabajo,
+con una interfaz en español y espacios diferenciados para administrar usuarios,
+preparar cursos, estudiar contenidos, realizar evaluaciones y consultar avances.
+Su aplicación inicial se ha planteado para la formación de equipos de call center.
+
+Durante el trabajo realizado se reorganizó el proyecto en arquitectura MVC, se
+verificaron sus funciones principales, se publicaron los cambios de código en
+GitHub y se desarrolló una alternativa de servidor en PHP puro con SQLite para
+atender las restricciones de un hosting básico.
+
+Esta alternativa permite desplegar la aplicación sin instalar Node.js, MySQL,
+Laravel ni Composer en el hosting. Sin embargo, el alojamiento sí debe ejecutar
+PHP compatible, disponer de la extensión PDO_SQLITE y permitir almacenar la base
+de datos en una ubicación privada y persistente. La disponibilidad de estas
+condiciones en el proveedor final todavía debe confirmarse.
+
+La solución ya contempla cuentas, niveles de acceso, permisos de capacitación,
+cursos en borrador o publicados, videos de YouTube mediante enlace, material de
+texto, notas personales, evaluaciones calificadas por el servidor y reportes de
+seguimiento. También existe una demostración independiente en GitHub Pages, cuya
+finalidad es mostrar la interfaz con datos de prueba.
+
+Al corte de este informe se ejecutó nuevamente la batería automatizada completa:
+17 pruebas aprobadas, cero fallos y cero pruebas omitidas. Se verificó además la
+integridad de la base activa mediante SQLite, con resultado satisfactorio.
+
+Por solicitud del responsable del proyecto se respaldó y limpió la base activa
+para iniciar pruebas desde cero. Se conservó solamente la cuenta administradora
+con su contraseña, sin cursos, participantes adicionales, avances, evaluaciones
+ni sesiones activas.
+
+La plataforma está preparada para un piloto controlado. Aún se requiere validar
+el hosting definitivo, realizar una revisión visual y operativa con usuarios,
+definir responsabilidades de mantenimiento y establecer el procedimiento de
+respaldo y recuperación. No se ha confirmado un despliegue productivo en Internet.
+
+
+2. OBJETIVO Y ALCANCE FUNCIONAL
+-------------------------------------------------------------------------------
+
+El objetivo es centralizar la preparación, distribución y seguimiento de la
+capacitación, de manera que el área responsable pueda publicar contenidos y
+consultar el desempeño de los participantes dentro de una misma herramienta.
+
+El alcance actual comprende:
+
+  - Administración de cuentas y niveles de acceso.
+  - Asignación de permisos a capacitadores.
+  - Creación, edición y publicación de cursos propios.
+  - Material escrito e importación de texto desde archivos TXT.
+  - Asociación de videos de YouTube mediante enlaces.
+  - Evaluaciones de selección única con nota mínima de aprobación.
+  - Calificación en el servidor y conservación del historial de intentos.
+  - Registro de contenido completado y notas personales.
+  - Consulta de avances y resultados según el rol autorizado.
+  - Persistencia centralizada en SQLite en las versiones con servidor.
+
+El alcance no incluye todavía la carga y visualización de archivos PDF ni la
+carga de presentaciones PowerPoint. Estas funciones fueron analizadas como una
+ampliación futura, pero no forman parte de lo implementado a esta fecha.
+
+
+3. AVANCES Y CAMBIOS REALIZADOS
+-------------------------------------------------------------------------------
+
+3.1. Reorganización del proyecto en MVC
+
+Se separaron las responsabilidades principales del código mediante el patrón
+Modelo-Vista-Controlador:
+
+  Modelo:
+  Gestiona los datos, las consultas a SQLite y determinadas reglas relacionadas
+  con cuentas, permisos y persistencia.
+
+  Vista:
+  Presenta la información, los formularios, el catálogo, los contenidos y los
+  resultados que el usuario consulta en el navegador.
+
+  Controlador:
+  Coordina las acciones del usuario y las solicitudes al servidor, verifica
+  condiciones de acceso y utiliza los modelos para consultar o guardar datos.
+
+Esta separación facilita localizar problemas, aplicar cambios y comprobar que
+una modificación no altere otras funciones. Se conservaron los puntos de entrada
+de la versión Node y se ajustó la generación de la demo para reutilizar módulos
+de la interfaz.
+
+MVC no obliga a utilizar Laravel ni otro framework. En este proyecto se aplicó
+como una organización del código, conservando una solución sin dependencias de
+framework para el despliegue PHP.
+
+3.2. Adaptación a PHP puro con SQLite
+
+Ante la posibilidad de que el hosting no disponga de Node.js ni MySQL, se creó
+un backend PHP que cubre los flujos principales de la aplicación y utiliza la
+misma interfaz del navegador.
+
+El paquete de hosting contiene los archivos PHP listos para copiar. El paso de
+preparación realizado en el equipo de desarrollo organiza y copia los archivos;
+no exige compilar la aplicación en el servidor del proveedor.
+
+La API PHP utiliza rutas mediante index.php?route=/api/..., evitando depender de
+reglas de reescritura de URL para las operaciones de la aplicación. Se mantiene
+la separación entre la carpeta pública y los archivos privados del servidor.
+
+La versión Node.js se conserva como alternativa y referencia de compatibilidad.
+No está incluida como requisito de ejecución del paquete PHP. Ambas versiones
+no deben operar simultáneamente sobre la misma base de datos.
+
+3.3. Conservación de SQLite
+
+Se mantuvo SQLite para guardar usuarios, cursos, sesiones, notas, avances e
+intentos de evaluación. Esta decisión evita requerir un servicio MySQL separado.
+
+La base es un archivo administrado por la aplicación. No debe confundirse con un
+archivo destinado a descarga pública: contiene información de usuarios y debe
+permanecer fuera de la carpeta que el sitio expone a Internet.
+
+Las migraciones de estructura son aditivas para conservar identificadores e
+historial cuando se incorpora una base anterior. La limpieza solicitada para
+pruebas fue una operación separada y deliberada, precedida por un respaldo.
+
+3.4. Preparación de entregables y control de versiones
+
+Los cambios principales se registraron en GitHub:
+
+  cada1ef: Reorganización MVC y verificación del servidor y GitHub Pages.
+  81a691d: Backend PHP MVC con SQLite para hosting compartido.
+  ea43655: Pruebas de enlaces y reproductores de YouTube; exclusión de respaldos.
+
+Repositorio:
+https://github.com/aeortizcas/ModuloCapacitacion
+
+La publicación del código en GitHub permite conservar el historial de cambios.
+No equivale a desplegar el servidor PHP en un hosting ni a publicar los datos.
+La base de datos, sus respaldos y las configuraciones privadas están excluidos
+de la entrega de código correspondiente.
+
+
+4. CARACTERÍSTICAS DISPONIBLES PARA EL ÁREA USUARIA
+-------------------------------------------------------------------------------
+
+4.1. Administración de usuarios
+
+El administrador puede crear cuentas indicando nombre, correo, contraseña
+inicial y nivel de acceso. También puede modificar el nivel y los permisos de
+otras cuentas desde la sección Usuarios y permisos.
+
+Los cambios de permisos invalidan las sesiones del usuario afectado, quien debe
+volver a ingresar. El administrador no puede cambiar su propio nivel mediante
+esta función, para proteger la disponibilidad de acceso administrativo.
+
+En la versión PHP el registro público está desactivado de forma predeterminada.
+La creación de cuentas queda a cargo del administrador, salvo que se habilite
+expresamente el registro en la configuración privada.
+
+4.2. Niveles de acceso
+
+Administrador:
+  Gestiona usuarios y permisos y dispone de las funciones de capacitación para
+  sus propios cursos. Este nivel no concede acceso general a las notas privadas
+  ni permite editar automáticamente los cursos de otros autores.
+
+Capacitador:
+  Puede recibir permisos separados para crear y editar sus cursos, publicarlos
+  y consultar sus resultados. Publicar requiere también el permiso de gestión
+  de cursos. Un capacitador sin permiso de publicación puede preparar borradores,
+  pero no modificar cursos que ya estén publicados.
+
+Capacitado:
+  Accede a los cursos publicados, estudia el material, guarda notas personales,
+  realiza evaluaciones y consulta sus propios resultados.
+
+Asesor:
+  Cuenta con el mismo alcance de aprendizaje personal que el capacitado y se
+  identifica como un nivel operativo diferente para la administración.
+
+El selector de acceso de la pantalla de inicio no otorga privilegios. La
+autorización depende de la cuenta y de los controles aplicados por el servidor.
+
+4.3. Gestión de capacitaciones
+
+El autor registra título, categoría, descripción, duración estimada, contenido,
+video opcional, preguntas y nota mínima. Puede guardar un borrador antes de
+publicar el curso.
+
+Los borradores se mantienen dentro del ámbito del autor. Los cursos publicados
+están disponibles para todos los participantes de la plataforma; actualmente
+no existe una asignación restringida por departamento, campaña, grupo o cohorte.
+
+El catálogo permite buscar y filtrar por categoría. El capacitador dispone de
+una vista previa para revisar el contenido y su clave de respuestas sin generar
+avances ni intentos de evaluación como si fuera un participante.
+
+4.4. Material escrito
+
+Los cursos admiten texto de estudio y la interfaz permite importar contenido
+desde un archivo TXT. Esto facilita preparar instrucciones, procesos, guiones
+y material de consulta sin requerir un servicio externo de documentos.
+
+El contenido se presenta como texto protegido frente a interpretación de HTML
+en los campos tratados por la interfaz. No existe un editor libre de páginas
+HTML ni una función de ejecución de código proporcionado por el usuario.
+
+4.5. Evaluaciones y calificaciones
+
+La aplicación admite hasta 50 preguntas por evaluación. Cada pregunta contiene
+entre dos y seis opciones y una respuesta correcta. La nota mínima se configura
+entre 1 y 100.
+
+El servidor valida las respuestas y calcula la calificación. No utiliza una
+nota enviada libremente por el navegador como resultado oficial. La consulta
+de cursos de un participante no entrega la clave de respuestas correctas.
+
+Los participantes pueden reintentar una evaluación y se conserva el historial.
+Cuando cambia la evaluación o la nota mínima, se actualiza su versión. Los
+intentos anteriores se conservan, pero el estado de aprobación de la nueva
+versión se determina con los intentos que corresponden a esa versión.
+
+El sistema no incorpora actualmente supervisión de exámenes, bloqueo del
+navegador, límite de intentos, temporizador de examen ni controles contra la
+colaboración entre participantes. Por tanto, no debe presentarse como una
+solución de evaluación de alta seguridad sin desarrollar controles adicionales.
+
+4.6. Avances y notas personales
+
+El participante puede marcar el contenido como completado y guardar notas
+asociadas a su cuenta y al curso. Las notas de un usuario no se presentan como
+notas de otro ni se incluyen en el panel de seguimiento del capacitador.
+
+La representación actual de avance utiliza estas referencias:
+
+  - 0%: no existe contenido marcado como completado ni aprobación vigente.
+  - 60%: contenido marcado como completado, sin evaluación vigente aprobada.
+  - 100%: existe una evaluación aprobada de la versión vigente.
+
+Estos porcentajes representan estados funcionales. No certifican tiempo real de
+estudio, reproducción completa de videos ni permanencia frente a la pantalla.
+
+4.7. Reportes y seguimiento
+
+Los usuarios autorizados pueden consultar indicadores de participantes, cursos
+publicados, borradores, aprobaciones, pendientes y casos que requieren reintento.
+También se presentan evaluaciones recientes y seguimiento por participante.
+
+El alcance de los reportes del capacitador corresponde a sus cursos. Los
+indicadores se calculan con los datos disponibles y las versiones vigentes de
+las pruebas; no son métricas de productividad laboral ni evidencia automática
+de aplicación de conocimientos en el puesto de trabajo.
+
+
+5. FUNCIONALIDAD DE YOUTUBE Y SU VERIFICACIÓN
+-------------------------------------------------------------------------------
+
+5.1. Forma de uso
+
+El capacitador pega un enlace de YouTube en el campo correspondiente al crear o
+editar un curso. La aplicación valida el enlace, extrae el identificador del
+video y lo guarda con el curso.
+
+El participante visualiza un reproductor integrado dentro del material. La
+vista del participante incluye además un enlace para abrir el video en YouTube.
+El capacitador puede comprobar la inserción desde su vista previa.
+
+No se sube el archivo de video al hosting. El contenido audiovisual permanece
+alojado en YouTube, mientras la aplicación conserva la referencia al video.
+
+5.2. Formatos comprobados
+
+Se probaron los siguientes formatos:
+
+  - Enlace normal de reproducción: youtube.com/watch?v=...
+  - Enlace corto: youtu.be/...
+  - Enlace de Shorts: youtube.com/shorts/...
+  - Enlace de directo: youtube.com/live/...
+  - Enlace de inserción: youtube.com/embed/...
+  - Enlace móvil: m.youtube.com/watch?v=...
+
+Las pruebas incluyeron enlaces con parámetros adicionales y comprobaron que el
+identificador normalizado se conservara al guardar y consultar el curso.
+
+También se verificó el rechazo de enlaces HTTP sin cifrar, identificadores
+inválidos, esquemas de ejecución como javascript: y dominios que intentan
+parecerse a YouTube sin pertenecer al dominio permitido.
+
+5.3. Alcance real de la comprobación
+
+Las pruebas verificaron el procesamiento del enlace por los servidores Node y
+PHP, su persistencia y la generación del reproductor en el contenido y la vista
+previa. Se comprobó además que la edición conserve un enlace utilizable y que
+un curso sin video no genere un reproductor vacío.
+
+La inserción utiliza youtube-nocookie.com. La reproducción efectiva depende de
+YouTube, de la disponibilidad del video, de los permisos de inserción definidos
+por su propietario y de las restricciones de red o de cuenta aplicables.
+
+No se realizó una comprobación audiovisual completa con un navegador conectado.
+Antes del piloto, el área usuaria debe probar sus videos reales desde la red y
+los equipos que utilizarán los participantes. Un enlace técnicamente válido no
+garantiza que un video privado, eliminado o restringido pueda reproducirse.
+
+
+6. ALMACENAMIENTO, MIGRACIÓN Y LIMPIEZA DE DATOS
+-------------------------------------------------------------------------------
+
+6.1. Ubicación y tipos de datos
+
+La base activa local del proyecto es data/training.db. En un despliegue PHP, la
+ruta se define mediante db_path en la configuración privada o mediante DB_PATH.
+La configuración de ejemplo utiliza storage/training.db fuera de public_html.
+
+Las tablas funcionales principales almacenan usuarios, sesiones, cursos,
+progreso y notas, e intentos de evaluación. La versión PHP puede crear también
+tablas auxiliares para control de migraciones y límites de acceso. Estas últimas
+son registros técnicos, no contenido de capacitación.
+
+SQLite no elimina la necesidad de respaldos. La carpeta que contiene la base
+debe conservar los datos entre reinicios, permitir escritura al proceso PHP y
+permanecer fuera del acceso web directo.
+
+6.2. Compatibilidad de contraseñas
+
+La versión anterior utiliza scrypt. Se implementó y probó su verificación desde
+PHP mediante Sodium, con actualización del hash después de un acceso correcto.
+
+Si el hosting no dispone de Sodium, se puede operar con nuevas cuentas PHP, pero
+las contraseñas heredadas deben restablecerse mediante la herramienta privada
+bin/password.php. El restablecimiento no borra el historial del usuario y no se
+expone como una función pública en una URL.
+
+Después de actualizar contraseñas al formato PHP, la versión Node anterior no
+puede verificarlas. Cualquier retorno a esa versión requiere un procedimiento
+de recuperación con el respaldo correspondiente, no un simple cambio de servidor.
+
+6.3. Reinicio solicitado para pruebas
+
+Se generó una copia consistente de la base mediante SQLite antes de eliminar
+los datos. La limpieza se realizó conservando la cuenta administradora y su
+contraseña, y eliminando los datos operativos asociados a la prueba anterior.
+
+Conteos comprobados al preparar este informe:
+
+  Usuarios:                 1, correspondiente al administrador.
+  Cursos:                   0.
+  Registros de progreso:    0.
+  Intentos de evaluación:   0.
+  Sesiones activas:         0.
+
+La comprobación de integridad de SQLite devolvió "ok". Al no quedar sesiones,
+es necesario iniciar sesión nuevamente. El primer acceso no debe solicitar la
+creación de otro administrador porque la cuenta existente fue conservada.
+
+El respaldo quedó en data/backups/ con el nombre:
+training-before-reset-2026-09-24T16-30-42.875Z.db
+
+El nombre del respaldo contiene la fecha y hora en UTC. El archivo conserva
+información previa a la limpieza y debe tratarse como información privada.
+Los respaldos no se incluyeron en GitHub.
+
+La limpieza corresponde a data/training.db. No se debe interpretar como una
+eliminación de datos de todos los archivos históricos existentes en el equipo
+ni como un borrado de los datos locales de la demo de GitHub Pages.
+
+
+7. SEGURIDAD: HALLAZGOS Y CAMBIOS APLICADOS
+-------------------------------------------------------------------------------
+
+Se realizó una revisión focalizada del código y comprobaciones locales con bases
+temporales. Se identificaron debilidades concretas en la versión Node revisada:
+
+  a) El registro abierto permitía crear una cuenta y consultar cursos publicados
+     sin invitación.
+
+  b) Una solicitud de escritura iniciada antes de retirar permisos podía guardar
+     cambios después de la revocación.
+
+  c) El límite de accesos agrupado por IP podía bloquear a otras personas que
+     compartieran la misma salida de red.
+
+  d) En una instalación vacía, la primera persona que completara la configuración
+     podía obtener el acceso administrativo inicial.
+
+La alternativa PHP incorpora controles para atender estas situaciones:
+
+  - Registro público desactivado de forma predeterminada.
+  - Clave privada de instalación para crear al primer administrador.
+  - Lectura completa de la solicitud antes de autenticar la operación.
+  - Verificación de sesión y permisos dentro de la transacción de escritura.
+  - Límites persistentes por combinación de cuenta, IP y ruta de acceso.
+  - Invalidación de sesiones cuando se cambia el acceso de una cuenta.
+
+Estos cambios corresponden al backend PHP. No debe suponerse que sustituyen o
+corrigen automáticamente todos los controles de la alternativa Node conservada.
+
+Se mantienen además consultas parametrizadas, contraseñas con hash, cookies
+HttpOnly y SameSite, verificación del origen de solicitudes, validación de JSON,
+límites de tamaño y restricciones de acceso a archivos privados.
+
+Las pruebas de inyección SQL efectuadas no permitieron eludir el inicio de
+sesión. Este resultado y el uso de parámetros son controles positivos, pero no
+constituyen una garantía de ausencia de vulnerabilidades. La revisión realizada
+no reemplaza una auditoría integral, pruebas de carga o un análisis de seguridad
+del hosting definitivo.
+
+Los nuevos límites reducen el bloqueo colectivo observado; no representan una
+protección completa contra ataques distribuidos o saturación del servicio.
+Para uso remoto es necesario HTTPS y una configuración de producción correcta.
+
+
+8. PRUEBAS REALIZADAS Y RESULTADOS
+-------------------------------------------------------------------------------
+
+La última ejecución completa de las pruebas automatizadas presentó:
+
+  Total de pruebas:        17.
+  Pruebas aprobadas:       17.
+  Pruebas fallidas:         0.
+  Pruebas omitidas:         0.
+  Pruebas canceladas:       0.
+
+Las comprobaciones cubren, entre otros, los siguientes comportamientos:
+
+  - Migración de cuentas y permisos desde una estructura anterior.
+  - Creación del administrador y aplicación de niveles de acceso.
+  - Flujo de capacitación con autenticación, borradores y publicación.
+  - Validación de permisos y propiedad del curso.
+  - Aislamiento de notas e historial por participante.
+  - Cálculo real de calificaciones y rechazo de notas impuestas por el cliente.
+  - Versionado de evaluaciones y rechazo de intentos con una versión anterior.
+  - Reportes y seguimiento de resultados.
+  - Persistencia y comportamiento de la demo local del navegador.
+  - Navegación, retorno desde un curso y cierre del menú con Escape.
+  - Visibilidad de opciones según el nivel de acceso.
+  - Inicio del controlador de la interfaz y cierre de sesión.
+  - Disponibilidad de los módulos públicos y protección de archivos internos.
+  - Flujo completo de capacitación contra el servidor PHP.
+  - Instalación protegida, registro cerrado y rechazo de solicitudes inválidas.
+  - Conservación de registros y restablecimiento privado de contraseñas.
+  - Compatibilidad entre scrypt de Node y Sodium de PHP.
+  - Enlaces de YouTube, persistencia e inserción del reproductor.
+
+También se ejecutaron comprobaciones de sintaxis de los archivos JavaScript y
+PHP durante la preparación de la versión, y se revisó la integridad de SQLite.
+
+Las pruebas automatizadas emplean bases temporales. Su ejecución no vuelve a
+cargar cursos de ejemplo en la base activa que se dejó vacía para el piloto.
+
+La cobertura descrita es funcional y focalizada. No se han medido capacidad
+máxima, concurrencia real, disponibilidad bajo carga, accesibilidad completa,
+compatibilidad visual exhaustiva ni comportamiento de todos los navegadores.
+
+
+9. DIFERENCIA ENTRE LAS MODALIDADES DISPONIBLES
+-------------------------------------------------------------------------------
+
+Versión PHP con SQLite:
+  Es la alternativa preparada para un hosting básico compatible. El servidor
+  controla las cuentas, los permisos y las calificaciones, y guarda los datos de
+  forma centralizada. Es la modalidad prevista para evaluar el uso operativo.
+
+Versión Node.js con SQLite:
+  Se conserva como alternativa técnica y referencia para pruebas. Necesita
+  Node.js 24 o superior y un proceso de servidor en ejecución. No es la opción
+  prevista si el proveedor solo ofrece PHP.
+
+Demo en GitHub Pages:
+  Es una demostración estática. Guarda información en localStorage y la selección
+  de perfil en sessionStorage del navegador. No ofrece cuentas reales ni
+  separación segura de perfiles frente a una persona que controle ese navegador.
+  Sus resultados pueden manipularse y no deben utilizarse como registros oficiales.
+
+URL de la demo:
+https://aeortizcas.github.io/ModuloCapacitacion/
+
+Acceso local PHP habilitado al cierre del trabajo:
+http://localhost:8080
+
+La dirección local funciona en el equipo donde se ejecuta el servidor. No es
+una dirección pública ni prueba de que otros usuarios puedan conectarse desde
+sus equipos. El proceso debe permanecer en ejecución para utilizarla.
+
+
+10. REQUISITOS Y PENDIENTES DE DESPLIEGUE
+-------------------------------------------------------------------------------
+
+Antes de aprobar la puesta en producción, el responsable técnico debe confirmar:
+
+  1) PHP 8.2 o superior y actualizaciones de seguridad del proveedor.
+  2) Extensión PDO_SQLITE habilitada.
+  3) Almacenamiento local persistente y permisos de escritura para PHP.
+  4) Ubicación de base, configuración y herramientas fuera de la carpeta pública.
+  5) HTTPS y configuración del origen correcto del sitio.
+  6) Posibilidad de conservar respaldos privados y restaurarlos.
+  7) Sodium disponible si se conservarán contraseñas heredadas sin restablecerlas.
+  8) Acceso de la red corporativa a los videos elegidos de YouTube.
+
+No se ha confirmado el proveedor ni el plan específico del hosting. Tampoco se
+ha aprobado una capacidad de usuarios simultáneos. Estos puntos requieren
+validación en el entorno real y no pueden deducirse únicamente de que SQLite
+funcione en el equipo de desarrollo.
+
+En la configuración de ejemplo, únicamente public_html corresponde a contenido
+público. El paquete completo no debe copiarse íntegramente dentro de esa carpeta.
+La guía de instalación explica la distribución de archivos y la configuración.
+
+
+11. FUNCIONES PENDIENTES Y LIMITACIONES CONOCIDAS
+-------------------------------------------------------------------------------
+
+Documentos PDF y presentaciones:
+  Se propuso permitir adjuntos por curso, mostrar PDF dentro de la plataforma y
+  ofrecer PPTX para descarga, con una versión PDF para lectura en el navegador.
+  No se ha desarrollado la carga, almacenamiento, visor ni autorización de
+  descarga de estos archivos. Tampoco se incluye un conversor de PowerPoint.
+
+Recuperación de acceso:
+  No existe recuperación de contraseña mediante correo ni verificación del
+  correo electrónico. La versión PHP incluye una herramienta técnica privada
+  para restablecimiento, que debe utilizar una persona autorizada.
+
+Asignación de contenidos:
+  No se restringen los cursos publicados por grupos, campañas o departamentos.
+  Si se requiere confidencialidad entre equipos, esta función debe diseñarse
+  antes de publicar contenido que no corresponda a todos los participantes.
+
+Medición del aprendizaje:
+  No se mide reproducción completa ni tiempo real de estudio. El avance combina
+  la marca manual de contenido completado y la aprobación de la evaluación.
+
+Funciones adicionales:
+  No se han implementado certificados automáticos, notificaciones por correo,
+  exportación administrativa de reportes, integración con recursos humanos,
+  inicio de sesión corporativo ni autenticación de dos factores.
+
+Validación de interfaz:
+  Queda pendiente la revisión visual y de usabilidad con usuarios reales y sus
+  navegadores. La existencia de pruebas de navegación no reemplaza esa revisión.
+
+Operación continua:
+  No se entrega todavía un procedimiento automatizado de respaldos periódicos,
+  monitoreo o recuperación ante incidentes. Su definición forma parte de la
+  preparación operativa y del acuerdo con el proveedor de hosting.
+
+
+12. BENEFICIOS ESPERADOS Y CRITERIOS DE EVALUACIÓN
+-------------------------------------------------------------------------------
+
+Los siguientes beneficios son objetivos esperados; todavía no se han medido en
+una operación real:
+
+  - Centralizar material y evaluaciones de capacitación.
+  - Reducir la dispersión de contenidos entre medios informales.
+  - Facilitar la identificación de pendientes y necesidades de refuerzo.
+  - Dar al participante acceso a sus resultados e historial.
+  - Facilitar mantenimiento mediante separación MVC y control de versiones.
+  - Reducir requisitos de infraestructura mediante PHP puro y SQLite.
+
+No se presenta un cálculo de ahorro, retorno de inversión o incremento de
+productividad porque no existen mediciones, costos confirmados ni una línea
+base operativa con los cuales sustentar esos indicadores.
+
+Para evaluar el piloto conviene registrar si los usuarios completan el flujo
+sin asistencia, si las calificaciones corresponden a los casos esperados, si
+los responsables identifican pendientes con los reportes y si los videos se
+reproducen desde los equipos de trabajo.
+
+
+13. PROPUESTA DE PILOTO Y RESPONSABILIDADES
+-------------------------------------------------------------------------------
+
+Esta propuesta debe validarse con gerencia; no implica asignaciones ya aprobadas.
+
+Paso 1. Confirmación técnica del alojamiento.
+  Responsable propuesto: soporte técnico o administrador del hosting.
+  Resultado esperado: requisitos de PHP, SQLite, HTTPS y almacenamiento validados.
+
+Paso 2. Preparación de un curso real de prueba.
+  Responsable propuesto: área de capacitación.
+  Resultado esperado: título, texto, video autorizado, preguntas y nota mínima
+  revisados y aprobados por quien sea responsable del contenido.
+
+Paso 3. Creación de cuentas controladas.
+  Responsable propuesto: administrador del campus.
+  Resultado esperado: cuentas de capacitador y participantes con los permisos
+  mínimos necesarios, sin habilitar registro abierto durante el piloto.
+
+Paso 4. Ejecución del recorrido completo.
+  Responsable propuesto: representantes del área usuaria.
+  Resultado esperado: estudiar el curso, reproducir el video, guardar notas,
+  realizar intentos fallidos y aprobados y comprobar los resultados.
+
+Paso 5. Revisión de reportes y permisos.
+  Responsable propuesto: capacitación y soporte técnico.
+  Resultado esperado: correspondencia entre lo realizado por los participantes
+  y lo presentado al capacitador, sin acceso a información fuera de su ámbito.
+
+Paso 6. Respaldo y prueba de recuperación.
+  Responsable propuesto: soporte técnico.
+  Resultado esperado: una copia consistente que se pueda restaurar en un entorno
+  de prueba, con responsables y frecuencia de respaldo definidos.
+
+Paso 7. Decisión de continuidad.
+  Responsable propuesto: gerencia y propietario del proceso de capacitación.
+  Resultado esperado: aceptación del piloto o lista priorizada de ajustes antes
+  de autorizar un uso más amplio.
+
+No se establece en este informe una fecha de producción, presupuesto o volumen
+de usuarios comprometido, porque estos elementos no han sido acordados.
+
+
+14. ENTREGABLES Y REFERENCIAS INTERNAS
+-------------------------------------------------------------------------------
+
+Código fuente y control de cambios:
+  https://github.com/aeortizcas/ModuloCapacitacion
+
+Código PHP del proyecto:
+  php/
+
+Interfaz compartida y componentes MVC del navegador:
+  client/
+
+Guía detallada de hosting y migración:
+  HOSTING-PHP.md
+
+Documentación general:
+  README.md
+
+Preparación del paquete PHP:
+  scripts/build-php.php
+
+Carpeta de despliegue generada:
+  build/php-hosting/
+
+Archivo comprimido preparado para entrega:
+  build/innovacampus-php-sqlite.zip
+
+Pruebas automatizadas:
+  tests/, incluidas php.test.mjs, training.test.mjs y youtube.test.mjs.
+
+Respaldo de la base previo a la limpieza:
+  data/backups/training-before-reset-2026-09-24T16-30-42.875Z.db
+
+Este informe:
+  informes/INFORME_GERENCIAL_AVANCES_INNOVACAMPUS_2026-09-24.txt
+
+El ZIP contiene código y estructura de despliegue, no una copia de la base
+activa ni su respaldo. La migración de datos debe realizarse por separado y
+mediante un canal privado.
+
+
+15. ESTADO PARA DECISIÓN GERENCIAL
+-------------------------------------------------------------------------------
+
+La plataforma cuenta con una base funcional comprobada para organizar cursos,
+presentar material y videos, evaluar participantes y consultar resultados. Se
+dispone de una alternativa PHP con SQLite ajustada al escenario de un hosting
+básico, un paquete de despliegue y documentación de instalación.
+
+La base local está preparada para pruebas desde cero, conservando el acceso
+administrativo. El código de las principales etapas está registrado en GitHub
+y la última ejecución automatizada concluyó con las 17 pruebas aprobadas.
+
+La siguiente decisión corresponde a autorizar un piloto controlado y verificar
+el alojamiento real. La utilización productiva debe condicionarse a esa
+validación, a la aceptación del área usuaria y a la definición de mantenimiento,
+respaldo y recuperación.
+
+La carga de PDF y PowerPoint, así como las demás ampliaciones descritas, debe
+gestionarse como trabajo pendiente y no anunciarse como una capacidad disponible.
+
+===============================================================================
+FIN DEL INFORME
+===============================================================================
