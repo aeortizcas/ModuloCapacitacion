@@ -5,3 +5,6 @@ uploads/
 .env
 .DS_Store
 Thumbs.db
+build/
+php/storage/
+php/config.local.php

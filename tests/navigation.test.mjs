@@ -7,6 +7,7 @@ import vm from 'node:vm';
 function navigation() {
   const events = {}, attributes = {}, elements = {
     '#app': { innerHTML: '' },
+    '#auth-form': {},
     '#workspace': { focus() {} },
     '.sidebar': { dataset: { open: 'false' } },
     '#navigation-toggle': { setAttribute: (name, value) => { attributes[name] = value; }, querySelector: () => elements.label, focus: () => { attributes.focused = true; } },
@@ -21,7 +22,7 @@ function navigation() {
   const controller = read('../client/controllers/campus-controller.js');
   const eventsSource = controller.slice(controller.indexOf('async function guarded('), controller.indexOf('try{const session='));
   const source = model + '\n' + view + '\n' + eventsSource;
-  const context = vm.createContext({ LEVELS, PERMISSIONS, defaultPermissions, accessLevel, can, document: { querySelector: selector => elements[selector], addEventListener: (event, handler) => { events[event] = handler; } }, window: { scrollTo() {} }, setTimeout, clearTimeout });
+  const context = vm.createContext({ authView: undefined, LEVELS, PERMISSIONS, defaultPermissions, accessLevel, can, document: { querySelector: selector => elements[selector], addEventListener: (event, handler) => { events[event] = handler; } }, window: { scrollTo() {} }, setTimeout, clearTimeout });
   vm.runInContext(source + '\nrenderView=()=>{}; globalThis.testState=state;', context);
   return { context, events, elements, attributes, state: context.testState };
 }
@@ -51,6 +52,17 @@ test('opening a lesson from results returns to results', async () => {
   assert.equal(state.returnView, 'progress');
   await click({ action: 'back' });
   assert.equal(state.view, 'progress');
+});
+
+test('PHP setup requests its installation key and closed registration hides account creation',()=>{
+  const {context,elements,state}=navigation();
+  state.authMode='setup';state.requiresSetupToken=true;state.allowRegistration=false;
+  context.renderAuth();
+  assert.match(elements['#app'].innerHTML,/name="setupToken"/);
+  state.authMode='login';state.portal='learner';context.renderAuth();
+  assert.doesNotMatch(elements['#app'].innerHTML,/data-action="auth-switch"/);
+  state.allowRegistration=true;context.renderAuth();
+  assert.match(elements['#app'].innerHTML,/data-action="auth-switch"/);
 });
 
 test('administration is visible only to administrators and permissions control navigation', () => {

@@ -6,11 +6,14 @@ import { join } from 'node:path';
 process.env.NODE_ENV='test';
 const directory=mkdtempSync(join(tmpdir(),'innovacampus-test-'));
 process.env.DB_PATH=join(directory,'test.db');
-const {server}=await import('../server.mjs');
-await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const base='http://127.0.0.1:'+server.address().port;
-after(()=>new Promise(r=>server.close(r)));
-async function call(path,{method='GET',data,cookie,origin}={}){const res=await fetch(base+'/api'+path,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...(origin?{Origin:origin}:{})},body:data?JSON.stringify(data):undefined});return {status:res.status,body:await res.json(),cookie:res.headers.get('set-cookie')?.split(';')[0]};}
+let base=process.env.TEST_API_URL;
+if(!base){
+  const {server}=await import('../server.mjs');
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  base='http://127.0.0.1:'+server.address().port;
+  after(()=>new Promise(r=>server.close(r)));
+}
+async function call(path,{method='GET',data,cookie,origin}={}){if(path==='/setup'&&data&&process.env.TEST_SETUP_TOKEN)data={...data,setupToken:process.env.TEST_SETUP_TOKEN};const res=await fetch(base+'/api'+path,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...(origin?{Origin:origin}:{})},body:data?JSON.stringify(data):undefined});return {status:res.status,body:await res.json(),cookie:res.headers.get('set-cookie')?.split(';')[0]};}
 let trainer,learner,course;
 test('complete training journey with server authorization and grading',async()=>{
 assert.equal((await call('/courses')).status,401);

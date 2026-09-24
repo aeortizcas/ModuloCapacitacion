@@ -1,0 +1,23 @@
+[
+  [
+    "Tu primera llamada, paso a paso",
+    "Inducción",
+    "Conoce la estructura de una llamada y empieza con seguridad.",
+    "1. Saluda con tu nombre y el de la empresa.\n2. Escucha el motivo de la llamada sin interrumpir.\n3. Confirma lo que entendiste.\n4. Resuelve o escala según el proceso de tu campaña.\n5. Resume los acuerdos y agradece el tiempo del cliente.",
+    20
+  ],
+  [
+    "Escucha activa y empatía",
+    "Habilidades",
+    "Transforma conversaciones difíciles en una atención cercana.",
+    "Deja que el cliente termine de explicar su situación. Confirma su necesidad con tus propias palabras.\n\nEvita prometer resultados que no puedes garantizar. Explica el siguiente paso con claridad y confirma que el cliente lo comprendió.",
+    25
+  ],
+  [
+    "Protección de datos del cliente",
+    "Calidad",
+    "Aplica buenas prácticas al consultar y registrar información.",
+    "Verifica la identidad según el protocolo de tu campaña antes de compartir información.\n\nNo copies datos del cliente a cuentas personales. Bloquea tu sesión al ausentarte y reporta cualquier incidente por el canal interno.",
+    15
+  ]
+]

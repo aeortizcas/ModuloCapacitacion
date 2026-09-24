@@ -1,0 +1,118 @@
+{
+  "firstUser": [
+    "SELECT id FROM users LIMIT 1",
+    "get"
+  ],
+  "userByEmail": [
+    "SELECT * FROM users WHERE email=?",
+    "get"
+  ],
+  "userIdByEmail": [
+    "SELECT id FROM users WHERE email=?",
+    "get"
+  ],
+  "createUser": [
+    "INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",
+    "run"
+  ],
+  "setAccessLevel": [
+    "UPDATE users SET access_level=? WHERE id=?",
+    "run"
+  ],
+  "userById": [
+    "SELECT * FROM users WHERE id=?",
+    "get"
+  ],
+  "deleteExpiredSessions": [
+    "DELETE FROM sessions WHERE expires<?",
+    "run"
+  ],
+  "createSession": [
+    "INSERT INTO sessions VALUES(?,?,?)",
+    "run"
+  ],
+  "deleteSession": [
+    "DELETE FROM sessions WHERE token=?",
+    "run"
+  ],
+  "visibleCourses": [
+    "SELECT c.*,u.name AS trainer FROM courses c JOIN users u ON u.id=c.owner WHERE c.published=1 OR c.owner=? ORDER BY c.id DESC",
+    "all"
+  ],
+  "courseProgress": [
+    "SELECT completed,notes FROM progress WHERE user_id=? AND course_id=?",
+    "get"
+  ],
+  "courseAttempts": [
+    "SELECT id,score,passed,created,revision FROM attempts WHERE user_id=? AND course_id=? ORDER BY id DESC",
+    "all"
+  ],
+  "ownedCourse": [
+    "SELECT * FROM courses WHERE id=? AND owner=?",
+    "get"
+  ],
+  "updateCourse": [
+    "UPDATE courses SET title=?,category=?,description=?,minutes=?,content=?,video=?,published=?,pass=?,questions=?,revision=? WHERE id=?",
+    "run"
+  ],
+  "createCourse": [
+    "INSERT INTO courses(title,category,description,minutes,content,video,published,pass,questions,owner) VALUES(?,?,?,?,?,?,?,?,?,?)",
+    "run"
+  ],
+  "publishedCourse": [
+    "SELECT * FROM courses WHERE id=? AND published=1",
+    "get"
+  ],
+  "progressRecord": [
+    "SELECT * FROM progress WHERE user_id=? AND course_id=?",
+    "get"
+  ],
+  "saveProgress": [
+    "INSERT INTO progress(user_id,course_id,completed,notes) VALUES(?,?,?,?) ON CONFLICT(user_id,course_id) DO UPDATE SET completed=excluded.completed,notes=excluded.notes",
+    "run"
+  ],
+  "createAttempt": [
+    "INSERT INTO attempts(user_id,course_id,score,passed,answers,revision) VALUES(?,?,?,?,?,?)",
+    "run"
+  ],
+  "learners": [
+    "SELECT id,name,email FROM users WHERE role='learner' ORDER BY name",
+    "all"
+  ],
+  "ownedCourseSummaries": [
+    "SELECT id,title,published,revision,category FROM courses WHERE owner=? ORDER BY id DESC",
+    "all"
+  ],
+  "ownedLearnerAttempts": [
+    "SELECT a.* FROM attempts a JOIN courses c ON c.id=a.course_id JOIN users u ON u.id=a.user_id WHERE c.owner=? AND u.role='learner' ORDER BY a.id DESC",
+    "all"
+  ],
+  "ownedProgress": [
+    "SELECT p.user_id,p.course_id,p.completed FROM progress p JOIN courses c ON c.id=p.course_id WHERE c.owner=?",
+    "all"
+  ],
+  "users": [
+    "SELECT * FROM users ORDER BY name",
+    "all"
+  ],
+  "teamResults": [
+    "SELECT a.id,a.score,a.passed,a.created,c.title,u.name,u.email FROM attempts a JOIN courses c ON c.id=a.course_id JOIN users u ON u.id=a.user_id WHERE c.owner=? ORDER BY a.id DESC",
+    "all"
+  ],
+  "sessionUser": [
+    "SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?",
+    "get"
+  ],
+  "updateUserAccess": [
+    "UPDATE users SET role=?,access_level=?,permissions=? WHERE id=?",
+    "run"
+  ],
+  "deleteUserSessions": [
+    "DELETE FROM sessions WHERE user_id=?",
+    "run"
+  ],
+  "createManagedUser": [
+    "INSERT INTO users(name,email,password,role,access_level,permissions) VALUES(?,?,?,?,?,?)",
+    "run"
+  ]
+}

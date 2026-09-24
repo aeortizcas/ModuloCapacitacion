@@ -2,7 +2,7 @@ import { readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 function scripts(dir) {
   return readdirSync(dir,{withFileTypes:true}).flatMap(entry => {
-    if(['.git','node_modules','data','uploads'].includes(entry.name)) return [];
+    if(['.git','node_modules','data','uploads','build'].includes(entry.name)) return [];
     const path=dir+'/'+entry.name;
     return entry.isDirectory()?scripts(path):/\.(?:mjs|js)$/.test(path)?[path]:[];
   });

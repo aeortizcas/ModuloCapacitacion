@@ -2,8 +2,8 @@ import { state } from '../models/campus-model.js';
 import { createHttpApi } from '../models/http-api.js';
 import { createViews } from '../views/campus-view.js';
 
-export async function startCampus({api: suppliedApi, authView}={}) {
-const api=suppliedApi||createHttpApi(()=>{if(state.user){state.user=null;renderAuth();}});
+export async function startCampus({api: suppliedApi, authView, apiBase}={}) {
+const api=suppliedApi||createHttpApi(()=>{if(state.user){state.user=null;renderAuth();}},apiBase);
 const { toast, button, brand, heading, renderView, renderCatalog, renderCards, renderLearnerDetail, renderProgress, formatDate, accessFields, bindAccessFields, accessPayload, renderTeam, questionEditor, renderEditor, renderAuth, toggleNavigation, shell, renderLearnerHome, renderTrainerDashboard, renderFollowRoster, renderDetail, renderAccessHome, $, escape }=createViews({api,guarded,loadCourses,refresh,authView});
 async function guarded(button,fn){if(button)button.disabled=true;try{await fn();}catch(e){toast(e.message);}finally{if(button)button.disabled=false;}}
 async function loadCourses(){state.courses=(await api('/courses')).courses;}
@@ -15,5 +15,5 @@ document.addEventListener('keydown',event=>{
   }
 });
 
-try{const session=await api('/session');state.user=session.user;state.authMode=session.needsSetup?'setup':'login';if(state.user)await refresh();else renderAuth();}catch(e){$('#app').innerHTML=`<main class="connection-error"><h1>No pudimos conectar con el campus</h1><p>Comprueba que el servidor esté disponible y vuelve a cargar la página.</p><p>${escape(e.message)}</p><a href="/" class="primary">Volver a intentar</a></main>`;}
+try{const session=await api('/session');state.user=session.user;state.allowRegistration=session.allowRegistration;state.requiresSetupToken=session.requiresSetupToken;state.authMode=session.needsSetup?'setup':'login';if(state.user)await refresh();else renderAuth();}catch(e){$('#app').innerHTML=`<main class="connection-error"><h1>No pudimos conectar con el campus</h1><p>Comprueba que el servidor esté disponible y vuelve a cargar la página.</p><p>${escape(e.message)}</p><a href="/" class="primary">Volver a intentar</a></main>`;}
 }

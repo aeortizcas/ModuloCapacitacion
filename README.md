@@ -2,6 +2,14 @@
 
 Plataforma de capacitación para call center con interfaz en español, cuentas de capacitadores y participantes, cursos compartidos, videos de YouTube y evaluaciones calificadas en el servidor.
 
+## Hosting básico: PHP + SQLite
+
+La versión para hosting básico está en `php/`: backend MVC en PHP puro, con SQLite y la misma interfaz. No requiere Node.js, MySQL, Laravel ni Composer en el servidor. Necesita PHP 8.2 o superior con `pdo_sqlite` y almacenamiento persistente fuera de la carpeta pública.
+
+Ejecuta `C:\xampp\php\php.exe scripts/build-php.php` para preparar `build/php-hosting/`. Consulta [HOSTING-PHP.md](HOSTING-PHP.md) para instalar, configurar la clave del primer administrador y migrar una base existente. El paquete usa registro cerrado por defecto y valida permisos dentro de la transacción de escritura.
+
+La base existente no se modifica al preparar el paquete. Las contraseñas anteriores se conservan al iniciar sesión si PHP tiene Sodium; de lo contrario deben restablecerse mediante la herramienta privada descrita en la guía. El backend Node se conserva como alternativa y para las pruebas de compatibilidad; el paquete PHP no lo incluye.
+
 ## Demostración en GitHub Pages
 
 Publicación desde `main`, carpeta `/docs`: https://aeortizcas.github.io/ModuloCapacitacion/
@@ -14,7 +22,7 @@ Publicación desde `main`, carpeta `/docs`: https://aeortizcas.github.io/ModuloC
 
 Para actualizarla, ejecuta `node scripts/build-pages.mjs` después de modificar la interfaz y sube también los archivos generados en `docs/`. Pages sirve únicamente esa carpeta.
 
-## Ejecutar la versión con servidor
+## Ejecutar la versión alternativa con Node.js
 
 Requiere Node.js 24 o superior. No necesita instalar dependencias.
 
@@ -92,7 +100,7 @@ El servidor y el cliente están organizados por responsabilidad, sin dependencia
 
 La demo inyecta su API local y su pantalla de selección de perfiles en el mismo controlador. `npm run build:pages` copia los módulos compartidos a `docs/`; los archivos de esa carpeta son generados y se actualizan desde las fuentes. El servidor publica únicamente una lista explícita de recursos: los modelos del servidor, la base de datos y la configuración no son accesibles por HTTP.
 
-Las 11 pruebas automatizadas verifican los flujos de capacitación, la migración de permisos, la demo, la navegación, el arranque real del controlador del cliente, las dependencias de los módulos en ambas distribuciones y el rechazo de acceso a archivos internos. En Windows se usa `npm.cmd` si PowerShell bloquea `npm.ps1`.
+Las pruebas automatizadas verifican los flujos de capacitación, la migración de permisos, la demo, la navegación, el arranque real del controlador del cliente, las dependencias de los módulos y el rechazo de acceso a archivos internos. Las pruebas de PHP ejecutan además el mismo recorrido de capacitación, los controles de instalación, registro y permisos, y la conservación de datos y contraseñas. Si PHP no está disponible se omiten explícitamente; configura `PHP_BIN` para ejecutarlas. En Windows se usa `npm.cmd` si PowerShell bloquea `npm.ps1`.
 
 ## Experiencias por rol
 
