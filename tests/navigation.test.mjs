@@ -1,3 +1,4 @@
+import { LEVELS, PERMISSIONS, defaultPermissions, accessLevel, can } from '../access.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -12,8 +13,15 @@ function navigation() {
     label: { textContent: '' }
   };
   // Load the actual shared navigation without the startup network request.
-  const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8').replace(/^try\{const session=await api\('\/session'\).*$/m, '');
-  const context = vm.createContext({ document: { querySelector: selector => elements[selector], addEventListener: (event, handler) => { events[event] = handler; } }, window: { scrollTo() {} }, setTimeout, clearTimeout });
+  const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/^import .*$/gm, '');
+  const model = read('../client/models/campus-model.js').replace(/^export .*$/gm, '');
+  let view = read('../client/views/campus-view.js');
+  view = view.slice(view.indexOf('export function createViews('));
+  view = view.slice(view.indexOf('\n')+1, view.lastIndexOf('\nreturn {'));
+  const controller = read('../client/controllers/campus-controller.js');
+  const eventsSource = controller.slice(controller.indexOf('async function guarded('), controller.indexOf('try{const session='));
+  const source = model + '\n' + view + '\n' + eventsSource;
+  const context = vm.createContext({ LEVELS, PERMISSIONS, defaultPermissions, accessLevel, can, document: { querySelector: selector => elements[selector], addEventListener: (event, handler) => { events[event] = handler; } }, window: { scrollTo() {} }, setTimeout, clearTimeout });
   vm.runInContext(source + '\nrenderView=()=>{}; globalThis.testState=state;', context);
   return { context, events, elements, attributes, state: context.testState };
 }
@@ -43,4 +51,22 @@ test('opening a lesson from results returns to results', async () => {
   assert.equal(state.returnView, 'progress');
   await click({ action: 'back' });
   assert.equal(state.view, 'progress');
+});
+
+test('administration is visible only to administrators and permissions control navigation', () => {
+  const { context, elements, state } = navigation();
+  state.user={id:1,name:'Admin',role:'trainer',accessLevel:'admin',permissions:[]};
+  state.view='team';context.shell();
+  assert.match(elements['#app'].innerHTML,/Usuarios y permisos/);
+  assert.match(elements['#app'].innerHTML,/Administrador/);
+  state.user={id:2,name:'Author',role:'trainer',accessLevel:'trainer',permissions:['courses.manage']};
+  state.view='team';context.shell();
+  assert.equal(state.view,'home');
+  assert.doesNotMatch(elements['#app'].innerHTML,/data-view="team"/);
+  state.user.permissions=['reports.view'];state.view='editor';context.shell();
+  assert.equal(state.view,'home');
+  assert.match(elements['#app'].innerHTML,/Resultados del equipo/);
+  state.user={id:3,name:'Asesor',role:'learner',accessLevel:'advisor',permissions:[]};
+  context.shell();assert.match(elements['#app'].innerHTML,/Asesor/);
+  assert.doesNotMatch(elements['#app'].innerHTML,/Usuarios y permisos/);
 });

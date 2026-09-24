@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: innovatek-campus
+    name: innovacampus
     runtime: node
     plan: starter
     buildCommand: npm run check && npm test

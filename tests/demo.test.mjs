@@ -42,3 +42,21 @@ test('Pages demo reports storage failure without reporting a successful save', a
   const api = createDemoApi(storage, memory());
   await assert.rejects(api('/login', 'POST', { id: 1 }), /guardar/);
 });
+
+test('demo supports user creation and permission changes without storing passwords', async () => {
+  const storage=memory(), session=memory(), api=createDemoApi(storage,session);
+  const admin=(await api('/login','POST',{id:1})).user;
+  assert.equal(admin.accessLevel,'admin');
+  const author=(await api('/team','POST',{name:'Autor',email:'author@example.invalid',password:'do-not-store',accessLevel:'trainer',permissions:['courses.manage']})).user;
+  assert.equal(storage.getItem('innovacampus-pages-demo-v1').includes('do-not-store'),false);
+  await api('/login','POST',{id:author.id});
+  await assert.rejects(api('/team','POST',{name:'Intruso',email:'no@example.invalid',accessLevel:'admin'}));
+  await assert.rejects(api('/dashboard'));
+  const draft={title:'Borrador',content:'Material',minutes:10,pass:80,questions:[],published:false};
+  await api('/courses','POST',draft);
+  await assert.rejects(api('/courses','POST',{...draft,published:true}));
+  await api('/login','POST',{id:1});
+  await api('/team/'+author.id,'PUT',{accessLevel:'advisor',permissions:[]});
+  const advisor=(await api('/login','POST',{id:author.id})).user;
+  assert.equal(advisor.role,'learner');assert.equal(advisor.accessLevel,'advisor');
+});

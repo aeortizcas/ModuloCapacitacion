@@ -1,5 +1,6 @@
+import { LEVELS, PERMISSIONS, defaultPermissions, accessLevel, can } from '../access.mjs';
 // Demonstration data only. This is not an authentication or authorization system.
-const KEY = 'innovatek-pages-demo-v1';
+const KEY = 'innovacampus-pages-demo-v1';
 const SESSION = KEY + '-profile';
 const initial = () => ({
   users: [
@@ -36,6 +37,10 @@ export function createDemoApi(storage, sessionStorage) {
   }
   return async function api(path, method = 'GET', body = {}) {
     const db = read();
+    if(!db.users.some(u=>u.accessLevel)) {
+      const first=db.users.find(u=>u.role==='trainer');
+      for(const u of db.users){u.accessLevel=u===first?'admin':u.role;u.permissions=defaultPermissions(u.accessLevel);}
+    }
     const user = db.users.find(u => u.id === Number(sessionStorage.getItem(SESSION)));
     if (path === '/session') return { user: user ? copy(user) : null, needsSetup: false };
     if (path === '/demo/profiles') return { users: copy(db.users) };
@@ -57,17 +62,29 @@ export function createDemoApi(storage, sessionStorage) {
       attempts: copy(db.attempts.filter(a => a.user_id === user.id && a.course_id === c.id).reverse())
     })) };
     if (path === '/team' && method === 'GET') {
-      trainer();
-      return { users: copy(db.users), results: db.attempts.filter(a => ownCourses.some(c => c.id === a.course_id)).reverse().map(a => ({ ...copy(a), name: db.users.find(u => u.id === a.user_id).name, title: db.courses.find(c => c.id === a.course_id).title })) };
+      if(!can(user,'users.manage')&&!can(user,'reports.view'))fail('Sin permiso.');
+      return { users: can(user,'users.manage')?copy(db.users):[], results: db.attempts.filter(a => ownCourses.some(c => c.id === a.course_id)).reverse().map(a => ({ ...copy(a), name: db.users.find(u => u.id === a.user_id).name, title: db.courses.find(c => c.id === a.course_id).title })) };
     }
-    if (/^\/team\/\d+$/.test(path) && method === 'PUT') {
-      trainer();
-      const target = db.users.find(u => u.id === Number(path.split('/').pop()));
-      if (!target || target.id === user.id || !['trainer', 'learner'].includes(body.role)) fail('No se puede cambiar ese rol.');
-      target.role = body.role; save(db); return { ok: true };
+    if ((path === '/team' && method === 'POST') || (/^\/team\/\d+$/.test(path) && method === 'PUT')) {
+      if(!can(user,'users.manage'))fail('Solo el administrador puede gestionar usuarios.');
+      const level=body.accessLevel??body.role, permissions=body.permissions??defaultPermissions(level);
+      if(!Object.hasOwn(LEVELS,level)||!Array.isArray(permissions)||permissions.some(p=>!Object.hasOwn(PERMISSIONS,p)))fail('Acceso inválido.');
+      if(['learner','advisor'].includes(level)&&permissions.length)fail('Este perfil solo accede a su aprendizaje.');
+      if(permissions.includes('courses.publish')&&!permissions.includes('courses.manage'))fail('Publicar requiere crear y editar cursos.');
+      const access={role:['admin','trainer'].includes(level)?'trainer':'learner',accessLevel:level,permissions:level==='admin'?defaultPermissions(level):permissions};
+      if(method==='PUT') {
+        const target=db.users.find(u=>u.id===Number(path.split('/').pop()));
+        if(!target||target.id===user.id)fail('No puedes modificar ese usuario.');
+        Object.assign(target,access);save(db);return {user:copy(target)};
+      }
+      const name=String(body.name||'').trim().slice(0,100),email=String(body.email||'').trim().toLowerCase();
+      if(!name||!/^\S+@\S+\.\S+$/.test(email))fail('Ingresa nombre y correo de prueba válidos.');
+      if(db.users.some(u=>u.email===email))fail('Este correo ya existe.');
+      const created={id:Math.max(0,...db.users.map(u=>u.id))+1,name,email,...access};
+      db.users.push(created);save(db);return {user:copy(created)};
     }
     if (path === '/dashboard') {
-      trainer();
+      if(!can(user,'reports.view'))fail('Sin permiso para consultar resultados.');
       const users = db.users.filter(u => u.role === 'learner');
       const active = ownCourses.filter(c => c.published);
       const rows = db.attempts.filter(a => ownCourses.some(c => c.id === a.course_id) && users.some(u => u.id === a.user_id)).reverse();
@@ -86,7 +103,9 @@ export function createDemoApi(storage, sessionStorage) {
     }
     if ((path === '/courses' && method === 'POST') || (/^\/courses\/\d+$/.test(path) && method === 'PUT')) {
       trainer();
+      if(!can(user,'courses.manage'))fail('Sin permiso para editar cursos.');
       const previous = method === 'PUT' ? ownCourses.find(c => c.id === Number(path.split('/').pop())) : null;
+      if((body.published||previous?.published)&&!can(user,'courses.publish'))fail('Sin permiso para publicar.');
       if (method === 'PUT' && !previous) fail('Capacitación no encontrada.');
       if (!body.title?.trim() || !body.content?.trim()) fail('Agrega un título y contenido.');
       if (!Number.isInteger(body.minutes) || body.minutes < 1 || body.minutes > 1000 || !Number.isInteger(body.pass) || body.pass < 1 || body.pass > 100) fail('Revisa la duración y la nota mínima.');
@@ -132,11 +151,11 @@ export function createDemoApi(storage, sessionStorage) {
 export async function renderDemoLogin(api, onLogin) {
   const { users } = await api('/demo/profiles');
   const app = document.querySelector('#app');
-  app.innerHTML = `<main class="demo-welcome"><span class="eyebrow">INNOVATEK · CAMPUS DE FORMACIÓN</span><h1>Prueba tu próximo<br>espacio de aprendizaje.</h1><p>Explora capacitaciones, crea contenido y resuelve evaluaciones. Elige un perfil de ejemplo para comenzar.</p><div class="demo-profiles"></div><p class="field-help">Sin registro ni contraseñas. Los cambios se guardan en este navegador. Usa únicamente datos de prueba.</p><p id="demo-error" class="error" role="alert"></p></main>`;
+  app.innerHTML = `<main class="demo-welcome"><span class="eyebrow">INNOVACAMPUS · CAMPUS DE FORMACIÓN</span><h1>Prueba tu próximo<br>espacio de aprendizaje.</h1><p>Explora capacitaciones, crea contenido y resuelve evaluaciones. Elige un perfil de ejemplo para comenzar.</p><div class="demo-profiles"></div><p class="field-help">Sin registro ni contraseñas. Los cambios se guardan en este navegador. Usa únicamente datos de prueba.</p><p id="demo-error" class="error" role="alert"></p></main>`;
   for (const user of users) {
     const button = document.createElement('button');
     button.className = 'secondary';
-    button.textContent = `${user.name} · ${user.role === 'trainer' ? 'Capacitador' : 'Participante'}`;
+    button.textContent = `${user.name} · ${LEVELS[accessLevel(user)]||'Participante'}`;
     button.onclick = async () => {
       button.disabled = true;
       try { await onLogin((await api('/login', 'POST', { id: user.id })).user); }

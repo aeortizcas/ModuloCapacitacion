@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 process.env.NODE_ENV='test';
-const directory=mkdtempSync(join(tmpdir(),'innovatek-test-'));
+const directory=mkdtempSync(join(tmpdir(),'innovacampus-test-'));
 process.env.DB_PATH=join(directory,'test.db');
 const {server}=await import('../server.mjs');
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -57,6 +57,8 @@ assert.equal(revisedDashboard.stats.passed,0);assert.equal(revisedDashboard.lear
 const login=await call('/login',{method:'POST',data:{email:'learner@example.com',password:'learning-secure-123'}});assert.equal(login.status,200);assert.equal((await call('/courses',{cookie:login.cookie})).body.courses.find(c=>c.id===course).progress.notes,'Nota privada');
 const learner2=await call('/register',{method:'POST',data:{name:'Otra persona',email:'second@example.com',password:'learning-secure-456'}});
 await call('/team/'+learner2.body.user.id,{method:'PUT',cookie:trainer,data:{role:'trainer'}});
+assert.equal((await call('/courses',{cookie:learner2.cookie})).status,401);
+learner2.cookie=(await call('/login',{method:'POST',data:{email:'second@example.com',password:'learning-secure-456'}})).cookie;
 assert.equal((await call('/courses/'+course,{method:'PUT',cookie:learner2.cookie,data:payload})).status,404);
 const otherDashboard=(await call('/dashboard',{cookie:learner2.cookie})).body;
 assert.equal(otherDashboard.courses.length,0);assert.equal(otherDashboard.recent.length,0);assert.equal(otherDashboard.stats.learners,1);
